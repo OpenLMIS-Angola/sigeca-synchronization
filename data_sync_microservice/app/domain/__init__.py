@@ -1,1 +1,2 @@
 from .facilities_data import FacilityResourceReader
+from .changelog_data import CachangeLogResourceReader

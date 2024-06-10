@@ -1,1 +1,1 @@
-from .jdbc_reader import JDBCReader
+from .jdbc_reader import JDBCReader, ChangeLogOperationEnum

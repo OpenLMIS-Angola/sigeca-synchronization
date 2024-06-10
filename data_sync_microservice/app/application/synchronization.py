@@ -1,16 +1,11 @@
-from pyspark.sql import SparkSession
-from pyspark.sql.types import StructType, StructField, StringType, BooleanType, DateType, StringType as UUIDType
-from pyspark.sql.functions import col, lit, current_date, expr
-import requests
-import json
-import pprint
 from abc import ABC, abstractmethod
-from pyspark.sql import DataFrame, SparkSession
-from typing import Callable, Any, Type
+from datetime import datetime
+from typing import Any, Callable, Optional, Type
 
-from app.infrastructure import JDBCReader
-from app.domain.abstract import ResourceReader
 from app.domain import FacilityResourceReader
+from app.domain.abstract import ResourceReader
+from app.infrastructure import ChangeLogOperationEnum, JDBCReader
+
 
 class ResourceSynchronization(ABC):
     @property
@@ -22,8 +17,12 @@ class ResourceSynchronization(ABC):
         self.jdbc_reader = jdbc_reader
         self.resource = self.synchronized_resource(jdbc_reader)
 
-    def execute(self):
+    def execute_full_synchronization(self):
         data = self.resource.get_all_data()
+        self.synchronize_data(data)
+
+    def execute_change_synchronization(self, operation: ChangeLogOperationEnum = None, last_sync_timestamp: Optional[datetime] = None):
+        data = self.resource.get_changelog_data(operation, last_sync_timestamp)
         self.synchronize_data(data)
 
     def synchronize_data(self, df):

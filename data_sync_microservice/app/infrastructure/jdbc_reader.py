@@ -7,7 +7,7 @@ from datetime import datetime
 from enum import Enum
 import re
 
-class ChangeLogOperation(Enum):
+class ChangeLogOperationEnum(Enum):
     INSERT = 'I'
     UPDATE = 'U'
     DELETE = 'D'
@@ -58,14 +58,14 @@ class JDBCReader:
             .schema(schema) \
             .load()
 
-    def read_changes(self, table_name: str, schema: StructType, operation: ChangeLogOperation = None, last_sync_timestamp: Optional[datetime] = None) -> DataFrame:
+    def read_changes(self, table_name: str, schema: StructType, operation: ChangeLogOperationEnum = None, last_sync_timestamp: Optional[datetime] = None) -> DataFrame:
         """
         Reads changes from a specified table based on the last synchronization timestamp and parses the JSONB column.
 
         Args:
             table_name (str): The name of the table to read changes from. Should be in the format 'schema.table'.
             schema (StructType): The schema defining the structure of the JSONB column.
-            operation (ChangeLogOperation, optional): The type of operation to filter by (INSERT, UPDATE, DELETE).
+            operation (ChangeLogOperationEnum, optional): The type of operation to filter by (INSERT, UPDATE, DELETE).
             last_sync_timestamp (datetime, optional): The timestamp indicating the last synchronization time.
                                                       Fetches all changes if not provided.
 
@@ -91,7 +91,6 @@ class JDBCReader:
             .option("user", self.config['jdbc_user']) \
             .option("password", self.config['jdbc_password']) \
             .option("driver", self.config['jdbc_driver']) \
-            .schema(schema) \
             .load() \
             .withColumn("parsed_json", from_json(col("row_data"), schema))
         

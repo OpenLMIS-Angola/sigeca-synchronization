@@ -1,14 +1,17 @@
-from pyspark.sql import SparkSession
-from pyspark.sql.types import StructType, StructField, StringType, BooleanType, DateType, StringType as UUIDType
-from pyspark.sql.functions import col, lit, current_date, expr
-import requests
 import json
 import pprint
 from abc import ABC, abstractmethod
-from pyspark.sql import DataFrame, SparkSession
-from typing import Callable, Any
+from typing import Any, Callable, Optional, Type
 
-from app.infrastructure import JDBCReader
+import requests
+from app.infrastructure import ChangeLogOperationEnum, JDBCReader
+from pyspark.sql import DataFrame, SparkSession
+from pyspark.sql.functions import col, current_date, expr, lit
+from pyspark.sql.types import BooleanType, DateType
+from pyspark.sql.types import StringType
+from pyspark.sql.types import StringType as UUIDType
+from pyspark.sql.types import StructField, StructType
+from datetime import datetime
 
 class ResourceReader(ABC):
     def __init__(self, jdbc_reader: JDBCReader):
@@ -36,8 +39,8 @@ class ResourceReader(ABC):
         transformed_data = self.transform_data(data)
         return transformed_data
 
-    def get_changelog_data(self) -> DataFrame:
+    def get_changelog_data(self, operation: ChangeLogOperationEnum = None, last_sync_timestamp: Optional[datetime] = None) -> DataFrame:
         format_name = F"{self.read_schema_name()}.{self.read_table_name()}"
-        data = self.jdbc_reader.read_changes(format_name, self.read_schema())
+        data = self.jdbc_reader.read_changes(format_name, self.read_schema(), operation, last_sync_timestamp)
         transformed_data = self.transform_data(data)
         return transformed_data
