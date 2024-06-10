@@ -30,8 +30,14 @@ class ResourceReader(ABC):
     def transform_data(self, df: DataFrame) -> DataFrame:
         pass
 
-    def get_data(self) -> DataFrame:
+    def get_all_data(self) -> DataFrame:
         format_name = F"{self.read_schema_name()}.{self.read_table_name()}"
         data = self.jdbc_reader.read_data(format_name, self.read_schema())
+        transformed_data = self.transform_data(data)
+        return transformed_data
+
+    def get_changelog_data(self) -> DataFrame:
+        format_name = F"{self.read_schema_name()}.{self.read_table_name()}"
+        data = self.jdbc_reader.read_changes(format_name, self.read_schema())
         transformed_data = self.transform_data(data)
         return transformed_data

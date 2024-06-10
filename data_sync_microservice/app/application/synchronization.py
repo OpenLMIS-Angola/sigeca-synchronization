@@ -23,7 +23,7 @@ class ResourceSynchronization(ABC):
         self.resource = self.synchronized_resource(jdbc_reader)
 
     def execute(self):
-        data = self.resource.get_data()
+        data = self.resource.get_all_data()
         self.synchronize_data(data)
 
     def synchronize_data(self, df):
