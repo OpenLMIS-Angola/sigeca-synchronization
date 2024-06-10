@@ -4,13 +4,8 @@ from typing import Any, Optional
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import from_json, col
 from datetime import datetime
-from enum import Enum
+from .utils import ChangeLogOperationEnum
 import re
-
-class ChangeLogOperationEnum(Enum):
-    INSERT = 'I'
-    UPDATE = 'U'
-    DELETE = 'D'
 
 class JDBCReader:
     """

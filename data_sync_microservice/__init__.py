@@ -4,9 +4,11 @@ sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
 import json 
 from app.infrastructure import JDBCReader
-from app.application import FacilityResourceSynchronization
+from app.application import DataSyncService
+from app.application.synchronizations import FacilityResourceSynchronization
 from datetime import datetime
 from app.infrastructure import ChangeLogOperationEnum
+from app.infrastructure import ResourceAPIClient
 
 def load_config(file_path='./config.json'):
     with open(file_path, 'r') as file:
@@ -16,10 +18,11 @@ def load_config(file_path='./config.json'):
 def main():
     config = load_config()
     jdbc_reader = JDBCReader(config)
+    api_client = ResourceAPIClient(config['api']['url'], config['api']['token'])
 
-    sync = FacilityResourceSynchronization(jdbc_reader)
-    sync.execute_full_synchronization()
-    sync.execute_change_synchronization(ChangeLogOperationEnum.UPDATE, datetime(2019, 1, 1))
+    sync = DataSyncService(jdbc_reader, api_client)
+    sync.sync_full(FacilityResourceSynchronization)
+    sync.sync_change(FacilityResourceSynchronization, ChangeLogOperationEnum.UPDATE, datetime(2019, 1, 1))
     jdbc_reader.spark.stop()
 
 if __name__ == "__main__":
