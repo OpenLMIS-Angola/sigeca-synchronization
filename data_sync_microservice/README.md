@@ -50,7 +50,7 @@ This microservice synchronizes data between a local database and an external API
 
 Create the `config.json` file with your specific settings. It can be created based on the provided `config_example.json`:
 
-```json
+```javascript
 {
     "api": {
         "url": "https://api.example.com",  // URL of the external API to which data will be synchronized
