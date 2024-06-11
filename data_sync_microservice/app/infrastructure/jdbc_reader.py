@@ -7,10 +7,11 @@ from datetime import datetime
 from .utils import ChangeLogOperationEnum
 import re
 
+
 class JDBCReader:
     """
     JDBCReader is a utility class designed to facilitate reading data from a JDBC source into Spark DataFrames.
-    It supports fetching entire tables and extracting changes based on a timestamp, while also handling JSONB 
+    It supports fetching entire tables and extracting changes based on a timestamp, while also handling JSONB
     column parsing and transformation.
     """
 
@@ -26,10 +27,11 @@ class JDBCReader:
                           - 'jdbc_driver': The JDBC driver class name.
         """
         self.config = config
-        self.spark = SparkSession.builder \
-            .appName("DataSyncMicroservice") \
-            .config("spark.jars.packages", "org.postgresql:postgresql:42.2.23") \
+        self.spark = (
+            SparkSession.builder.appName("DataSyncMicroservice")
+            .config("spark.jars.packages", "org.postgresql:postgresql:42.2.23")
             .getOrCreate()
+        )
 
     def read_data(self, table_name: str, schema: StructType) -> DataFrame:
         """
@@ -43,17 +45,24 @@ class JDBCReader:
         Returns:
             DataFrame: A Spark DataFrame containing the data from the specified table.
         """
-        return self.spark.read \
-            .format("jdbc") \
-            .option("url", self.config['jdbc_url']) \
-            .option("dbtable", table_name) \
-            .option("user", self.config['jdbc_user']) \
-            .option("password", self.config['jdbc_password']) \
-            .option("driver", self.config['jdbc_driver']) \
-            .schema(schema) \
+        return (
+            self.spark.read.format("jdbc")
+            .option("url", self.config["jdbc_url"])
+            .option("dbtable", table_name)
+            .option("user", self.config["jdbc_user"])
+            .option("password", self.config["jdbc_password"])
+            .option("driver", self.config["jdbc_driver"])
+            .schema(schema)
             .load()
+        )
 
-    def read_changes(self, table_name: str, schema: StructType, operation: ChangeLogOperationEnum = None, last_sync_timestamp: Optional[datetime] = None) -> DataFrame:
+    def read_changes(
+        self,
+        table_name: str,
+        schema: StructType,
+        operation: ChangeLogOperationEnum = None,
+        last_sync_timestamp: Optional[datetime] = None,
+    ) -> DataFrame:
         """
         Reads changes from a specified table based on the last synchronization timestamp and parses the JSONB column.
 
@@ -68,27 +77,28 @@ class JDBCReader:
             DataFrame: A Spark DataFrame containing the changes since the last synchronization,
                        with the JSONB column parsed into individual fields.
         """
-        schema_name, table_name = self._sanitize_sql_identifier(table_name).split('.')
+        schema_name, table_name = self._sanitize_sql_identifier(table_name).split(".")
         query = f"(SELECT * FROM changelog.data_changes WHERE schema_name = '{schema_name}' AND table_name = '{table_name}'"
-        
+
         if operation:
             query += f" AND operation = '{operation.value}'"
         if last_sync_timestamp:
-            last_sync_timestamp = last_sync_timestamp.strftime('%Y-%m-%d %H:%M:%S')
+            last_sync_timestamp = last_sync_timestamp.strftime("%Y-%m-%d %H:%M:%S")
             query += f" AND change_time > '{last_sync_timestamp}') AS tmp"
         else:
             query += ") AS tmp"
 
-        base_df = self.spark.read \
-            .format("jdbc") \
-            .option("url", self.config['jdbc_url']) \
-            .option("dbtable", query) \
-            .option("user", self.config['jdbc_user']) \
-            .option("password", self.config['jdbc_password']) \
-            .option("driver", self.config['jdbc_driver']) \
-            .load() \
+        base_df = (
+            self.spark.read.format("jdbc")
+            .option("url", self.config["jdbc_url"])
+            .option("dbtable", query)
+            .option("user", self.config["jdbc_user"])
+            .option("password", self.config["jdbc_password"])
+            .option("driver", self.config["jdbc_driver"])
+            .load()
             .withColumn("parsed_json", from_json(col("row_data"), schema))
-        
+        )
+
         return self._selection_transformation(base_df, schema)
 
     def _selection_transformation(self, df: DataFrame, schema: StructType) -> DataFrame:
@@ -103,7 +113,10 @@ class JDBCReader:
         Returns:
             DataFrame: A Spark DataFrame with columns matching the schema field names, extracted from the JSONB data.
         """
-        select_expr = [col(f"parsed_json.{field.name}").alias(field.name) for field in schema.fields]
+        select_expr = [
+            col(f"parsed_json.{field.name}").alias(field.name)
+            for field in schema.fields
+        ]
         return df.select(*select_expr)
 
     def _sanitize_sql_identifier(self, identifier: str) -> str:

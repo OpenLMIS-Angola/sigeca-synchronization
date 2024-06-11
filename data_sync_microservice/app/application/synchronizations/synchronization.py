@@ -12,8 +12,12 @@ class ResourceSynchronization(ABC):
     @abstractmethod
     def synchronized_resource(self) -> Type[ResourceReader]:
         pass
-     
-    def __init__(self, jdbc_reader: JDBCReader): 
+
+    @classmethod
+    def get_resource_name(cls):
+        return f"{cls.synchronized_resource.read_schema_name()}.{cls.synchronized_resource.read_table_name()}"
+
+    def __init__(self, jdbc_reader: JDBCReader):
         self.jdbc_reader = jdbc_reader
         self.resource = self.synchronized_resource(jdbc_reader)
 
@@ -21,7 +25,11 @@ class ResourceSynchronization(ABC):
         data = self.resource.get_all_data()
         self.synchronize_data(data)
 
-    def execute_change_synchronization(self, operation: ChangeLogOperationEnum = None, last_sync_timestamp: Optional[datetime] = None):
+    def execute_change_synchronization(
+        self,
+        operation: ChangeLogOperationEnum = None,
+        last_sync_timestamp: Optional[datetime] = None,
+    ):
         data = self.resource.get_changelog_data(operation, last_sync_timestamp)
         self.synchronize_data(data)
 
@@ -29,5 +37,12 @@ class ResourceSynchronization(ABC):
         data = df.toJSON().collect()
         print(data)
 
-class FacilityResourceSynchronization(ResourceSynchronization): 
+
+
+def resource_synchronization_factory(resource: Type[ResourceReader]): 
+    x = ResourceSynchronization
+    x.synchronized_resource = resource
+    return x
+
+class FacilityResourceSynchronization(ResourceSynchronization):
     synchronized_resource = FacilityResourceReader

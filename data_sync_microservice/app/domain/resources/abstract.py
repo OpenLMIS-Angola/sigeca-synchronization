@@ -13,16 +13,19 @@ from pyspark.sql.types import StringType as UUIDType
 from pyspark.sql.types import StructField, StructType
 from datetime import datetime
 
+
 class ResourceReader(ABC):
     def __init__(self, jdbc_reader: JDBCReader):
         self.jdbc_reader = jdbc_reader
 
+    @classmethod
     @abstractmethod
-    def read_schema_name(self) -> StructType:
+    def read_schema_name(cls) -> StructType:
         pass
 
+    @classmethod
     @abstractmethod
-    def read_table_name(self) -> StructType:
+    def read_table_name(cls) -> StructType:
         pass
 
     @abstractmethod
@@ -34,13 +37,19 @@ class ResourceReader(ABC):
         pass
 
     def get_all_data(self) -> DataFrame:
-        format_name = F"{self.read_schema_name()}.{self.read_table_name()}"
+        format_name = f"{self.read_schema_name()}.{self.read_table_name()}"
         data = self.jdbc_reader.read_data(format_name, self.read_schema())
         transformed_data = self.transform_data(data)
         return transformed_data
 
-    def get_changelog_data(self, operation: ChangeLogOperationEnum = None, last_sync_timestamp: Optional[datetime] = None) -> DataFrame:
-        format_name = F"{self.read_schema_name()}.{self.read_table_name()}"
-        data = self.jdbc_reader.read_changes(format_name, self.read_schema(), operation, last_sync_timestamp)
+    def get_changelog_data(
+        self,
+        operation: ChangeLogOperationEnum = None,
+        last_sync_timestamp: Optional[datetime] = None,
+    ) -> DataFrame:
+        format_name = f"{self.read_schema_name()}.{self.read_table_name()}"
+        data = self.jdbc_reader.read_changes(
+            format_name, self.read_schema(), operation, last_sync_timestamp
+        )
         transformed_data = self.transform_data(data)
         return transformed_data
