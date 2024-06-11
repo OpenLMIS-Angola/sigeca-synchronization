@@ -31,7 +31,7 @@ jobs:
           push: true
           tags: |
             ghcr.io/openlmis-angola/open-lmis-data-sync-microservice:latest
-            ghcr.io/openlmis-angola/open-lmis-data_sync-microservice:${{ github.ref_name }}  # Tag with the branch name
+            ghcr.io/openlmis-angola/open-lmis-data_sync-microservice:${{ github.ref_name }}
 
       - name: Log out of GitHub Container Registry
         run: docker logout ghcr.io
