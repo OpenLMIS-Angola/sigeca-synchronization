@@ -29,8 +29,9 @@ jobs:
         with:
           context: ./data_sync_microservice  # Adjust the context to the subdirectory
           push: true
-          tags: ghcr.io/${{ github.repository_owner }}/OpenLMIS-data_sync_microservice:latest
-          tags: ghcr.io/${{ github.repository_owner }}/sigeca-synchronization:${{ github.ref_name }}  # Tag with the branch name
+          tags: |
+            ghcr.io/${{ github.repository_owner }}/OpenLMIS-data_sync_microservice:latest
+            ghcr.io/${{ github.repository_owner }}/sigeca-synchronization:${{ github.ref_name }}  # Tag with the branch name
 
       - name: Log out of GitHub Container Registry
         run: docker logout ghcr.io
