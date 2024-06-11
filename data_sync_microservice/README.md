@@ -82,9 +82,9 @@ Create the `config.json` file with your specific settings. It can be created bas
 
 To run the application continuously using Docker Compose:
 
-    ```bash
-    docker-compose run app python main.py --run-mode continuous
-    ```
+```bash
+docker-compose run app python main.py --run-mode continuous
+```
 
 This will run scheduled task which frequency is based on the `config.json`.
 > Note: This require OpenLMIS Instance to have [openLMIS-ChangeLog](https://github.com/OpenLMIS-Angola/openLMIS-Changelog) installed.
@@ -95,9 +95,9 @@ To perform a one-time integration:
 
 1. Run the application with the `one-time` argument:
 
-    ```bash
-    docker-compose run app python main.py --run-mode one-time
-    ```
+```bash
+docker-compose run app python main.py --run-mode one-time
+```
 
 
 This will run one time task which will synchronize all available data with external system.
