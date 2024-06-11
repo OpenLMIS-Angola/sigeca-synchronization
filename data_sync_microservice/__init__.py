@@ -10,6 +10,7 @@ from datetime import datetime
 from app.infrastructure import ChangeLogOperationEnum
 from app.infrastructure import ResourceAPIClient
 from app.application.scheduler.data_sync_scheduler import ChangesSyncScheduler
+from app.application.synchronizations import FacilityResourceSynchronization
 from app.infrastructure.database import get_engine, get_session, Base
 import logging
 
@@ -36,7 +37,10 @@ def main():
 
     sync_interval_minutes = config["sync"]["interval_minutes"]
     scheduler = ChangesSyncScheduler(
-        data_sync_service, session_maker, sync_interval_minutes
+        data_sync_service,
+        session_maker,
+        sync_interval_minutes,
+        [FacilityResourceSynchronization],
     )
 
     try:
