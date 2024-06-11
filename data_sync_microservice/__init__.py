@@ -33,14 +33,14 @@ def main():
 
     jdbc_reader = JDBCReader(config["jdbc_reader"])
     api_client = ResourceAPIClient(config["api"]["url"], config["api"]["token"])
-    data_sync_service = DataSyncService(jdbc_reader, session_maker)
+    data_sync_service = DataSyncService(session_maker)
 
     sync_interval_minutes = config["sync"]["interval_minutes"]
     scheduler = ChangesSyncScheduler(
         data_sync_service,
         session_maker,
         sync_interval_minutes,
-        [FacilityResourceSynchronization],
+        [FacilityResourceSynchronization(jdbc_reader)],
     )
 
     try:
