@@ -32,6 +32,7 @@ class JDBCReader:
             .config("spark.jars.packages", "org.postgresql:postgresql:42.2.23")
             .getOrCreate()
         )
+        self.spark.sparkContext.setLogLevel(config.get('log_level', 'WARN'))
 
     def read_data(self, table_name: str, schema: StructType) -> DataFrame:
         """
@@ -84,9 +85,9 @@ class JDBCReader:
             query += f" AND operation = '{operation.value}'"
         if last_sync_timestamp:
             last_sync_timestamp = last_sync_timestamp.strftime("%Y-%m-%d %H:%M:%S")
-            query += f" AND change_time > '{last_sync_timestamp}') AS tmp"
-        else:
-            query += ") AS tmp"
+            query += f" AND change_time > '{last_sync_timestamp}'"
+
+        query += ") AS tmp"
 
         base_df = (
             self.spark.read.format("jdbc")

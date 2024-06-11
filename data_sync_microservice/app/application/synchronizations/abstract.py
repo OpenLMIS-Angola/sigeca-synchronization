@@ -35,4 +35,7 @@ class ResourceSynchronization(ABC):
 
     def synchronize_data(self, df):
         data = df.toJSON().collect()
-        print(data)
+        print(F"\n\n\n\n Synchronized data: {data}.\n\n\n\n")
+
+    def __str__(self) -> str:
+        return self.__class__.__name__

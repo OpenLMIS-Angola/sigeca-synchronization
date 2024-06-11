@@ -1,0 +1,17 @@
+version: '3.8'
+
+
+services:
+  app:
+    build: .
+    container_name: spark_app
+    volumes:
+      - .:/app
+      - logs:/app/logs
+    ports:
+      - "4040:4040"  # Spark UI
+    command: ["python", "main.py", "--run-mode", "continuous"]
+    network_mode: "host"
+
+volumes:
+  logs:
