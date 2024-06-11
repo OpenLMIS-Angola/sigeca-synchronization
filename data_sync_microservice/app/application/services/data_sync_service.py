@@ -15,16 +15,6 @@ class DataSyncService:
         self.jdbc_reader = jdbc_reader
         self.session_maker = session_maker
 
-    def sync_change(
-        self,
-        resource: Type[ResourceSynchronization],
-        operation: Optional[ChangeLogOperationEnum] = None,
-        from_datetime: Optional[datetime] = None,
-    ):
-        resource(self.jdbc_reader).execute_change_synchronization(
-            operation, from_datetime
-        )
-
     def sync_from_last_sucessfull_synchronization(
         self,
         resource: Type[ResourceSynchronization],
@@ -37,6 +27,16 @@ class DataSyncService:
 
     def sync_full(self, resource: Type[ResourceSynchronization]):
         resource(self.jdbc_reader).execute_full_synchronization()
+
+    def sync_change(
+        self,
+        resource: Type[ResourceSynchronization],
+        operation: Optional[ChangeLogOperationEnum] = None,
+        from_datetime: Optional[datetime] = None,
+    ):
+        resource(self.jdbc_reader).execute_change_synchronization(
+            operation, from_datetime
+        )
 
     def _get_last_successful_sync(
         self,
