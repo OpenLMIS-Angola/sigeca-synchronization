@@ -33,9 +33,7 @@ class DataSyncService:
         operation: Optional[ChangeLogOperationEnum] = None,
         from_datetime: Optional[datetime] = None,
     ):
-        resource.execute_change_synchronization(
-            operation, from_datetime
-        )
+        resource.execute_change_synchronization(operation, from_datetime)
 
     def _get_last_successful_sync(
         self,
