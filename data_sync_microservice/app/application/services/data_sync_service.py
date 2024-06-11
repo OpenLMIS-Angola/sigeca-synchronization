@@ -6,7 +6,7 @@ from app.domain import FacilityResourceReader
 from app.domain.resources.abstract import ResourceReader
 from app.infrastructure import ChangeLogOperationEnum, JDBCReader
 from app.infrastructure.repository import SyncLogRepository
-from app.application.synchronizations.synchronization import ResourceSynchronization
+from app.application.synchronizations.abstract import ResourceSynchronization
 from app.domain.models.sync_log import SyncLog
 
 

@@ -1,1 +1,1 @@
-from .synchronization import FacilityResourceSynchronization
+from .resources_synchronization import FacilityResourceSynchronization
