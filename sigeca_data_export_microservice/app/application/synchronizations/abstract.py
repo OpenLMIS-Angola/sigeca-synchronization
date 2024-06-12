@@ -5,7 +5,7 @@ from typing import Any, Callable, Optional, Type
 from app.domain import FacilityResourceReader
 from app.domain.resources.abstract import ResourceReader
 from app.infrastructure import ChangeLogOperationEnum, JDBCReader
-
+import logging
 
 class ResourceSynchronization(ABC):
     @property
@@ -34,8 +34,7 @@ class ResourceSynchronization(ABC):
         self.synchronize_data(data)
 
     def synchronize_data(self, df):
-        data = df.toJSON().collect()
-        print(F"\n\n\n\n Synchronized data: {data}.\n\n\n\n")
+        logging.warning(F"\n\n\n\n Synchronized data: {df.toJSON().collect()}.\n\n\n\n")
 
     def __str__(self) -> str:
         return self.__class__.__name__

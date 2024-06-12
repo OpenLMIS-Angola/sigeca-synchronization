@@ -1,6 +1,6 @@
 from typing import List
 from apscheduler.schedulers.background import BackgroundScheduler
-from app.application.services.data_sync_service import DataSyncService
+from app.application.services.sigeca_data_export_service import DataSyncService
 from app.infrastructure.api import ResourceAPIClient
 from app.infrastructure.utils import ChangeLogOperationEnum
 from sqlalchemy.orm import sessionmaker

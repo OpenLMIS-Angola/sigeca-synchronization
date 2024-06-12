@@ -1,4 +1,4 @@
-name: Build and Push Docker Image For Data Sync Microservice
+name: Build and Push Docker Image For Sigeca Data Export Microservice
 
 on:
   push:
@@ -27,11 +27,11 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v2
         with:
-          context: ./data_sync_microservice  # Adjust the context to the subdirectory
+          context: ./sigeca_data_export_microservice  # Adjust the context to the subdirectory
           push: true
           tags: |
-            ghcr.io/openlmis-angola/open-lmis-data-sync-microservice:latest
-            ghcr.io/openlmis-angola/open-lmis-data_sync-microservice:${{ github.ref_name }}
+            ghcr.io/openlmis-angola/open-lmis-sigeca-data-export-microservice:latest
+            ghcr.io/openlmis-angola/open-lmis-sigeca_data_export-microservice:${{ github.ref_name }}
 
       - name: Log out of GitHub Container Registry
         run: docker logout ghcr.io

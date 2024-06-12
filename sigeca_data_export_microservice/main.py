@@ -9,7 +9,7 @@ import logging
 from datetime import datetime
 
 from app.application import DataSyncService
-from app.application.scheduler.data_sync_scheduler import ChangesSyncScheduler
+from app.application.scheduler.sigeca_data_export_scheduler import ChangesSyncScheduler
 from app.application.synchronizations import FacilityResourceSynchronization
 from app.infrastructure import (ChangeLogOperationEnum, JDBCReader,
                                 ResourceAPIClient)
@@ -21,10 +21,10 @@ def load_config(file_path="./config.json"):
         return json.load(file)
 
 
-def _run_scheduler(session_maker, jdbc_reader, data_sync_service, sync_interval_minutes):
+def _run_scheduler(session_maker, jdbc_reader, sigeca_data_export_service, sync_interval_minutes):
     try:
         scheduler = ChangesSyncScheduler(
-            data_sync_service,
+            sigeca_data_export_service,
             session_maker,
             sync_interval_minutes,
             [FacilityResourceSynchronization(jdbc_reader)],
@@ -50,7 +50,7 @@ def main():
 
     jdbc_reader = JDBCReader(config["jdbc_reader"])
     api_client = ResourceAPIClient(config["api"]["url"], config["api"]["token"])
-    data_sync_service = DataSyncService(session_maker)
+    sigeca_data_export_service = DataSyncService(session_maker)
 
     sync_interval_minutes = config["sync"]["interval_minutes"]
 
@@ -59,10 +59,10 @@ def main():
     args = parser.parse_args()
 
     if args.run_mode == "continuous":
-        _run_scheduler(session_maker, jdbc_reader, data_sync_service, sync_interval_minutes)
+        _run_scheduler(session_maker, jdbc_reader, sigeca_data_export_service, sync_interval_minutes)
 
     elif args.run_mode == "one-time":
-        data_sync_service.sync_full(
+        sigeca_data_export_service.sync_full(
             FacilityResourceSynchronization(jdbc_reader)
         )
 

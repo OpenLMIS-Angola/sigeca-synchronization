@@ -1,4 +1,4 @@
-# Data Sync Microservice
+# Sigeca Data Export Microservice
 
 This microservice synchronizes data between a local database and an external API using Apache Spark. It supports both continuous synchronization and one-time integration.
 
@@ -32,7 +32,7 @@ This microservice synchronizes data between a local database and an external API
 
     ```bash
     git clone https://github.com/OpenLMIS-Angola/sigeca-synchronization.git
-    cd sigeca-synchronization/data_sync_microservice
+    cd sigeca-synchronization/sigeca_data_export_microservice
     ```
 2. Create and run virtual environment 
 
