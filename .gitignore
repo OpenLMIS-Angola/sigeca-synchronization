@@ -162,3 +162,5 @@ cython_debug/
 #.idea/
 
 sigeca_data_export_microservice/config.json
+sigeca_data_import_microservice/config.json
+sigeca_data_import_microservice/mocked_facilities.json
