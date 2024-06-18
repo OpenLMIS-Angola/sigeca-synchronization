@@ -1,0 +1,38 @@
+{
+    "open_lmis_api" : {
+        "api_url": "https://openlmisapi.example.org/api/",
+        "username": "lmis_user",
+        "password": "password",
+        "login_token": "dSFdoi1fb4l6bn16YxhgbxhlbdU="
+    },
+    "sigeca_api" : {
+        "api_url": "http://exmapleapisiggeca.org/api",
+        "headers": {
+            "ContentType": "application/json"
+        }
+    },
+    "database": {
+        "username": "db_user",
+        "password": "db_passwd", 
+        "host": "localhost", 
+        "port": 5432,
+        "database": "open_lmis"
+    },
+    "jdbc_reader": { 
+        "jdbc_url": "jdbc:postgresql://dbserver.example.org:5432/open_lmis",
+        "jdbc_user": "db_user",
+        "jdbc_password": "db_passwd",
+        "jdbc_driver": "org.postgresql.Driver",
+        "log_level": "WARN",
+        "ssh_host": "sshOptionalHost",
+        "ssh_port": 22,
+        "ssh_user": "ubuntu",
+        "ssh_private_key_path": "./private_key",
+        "remote_bind_address": "dbserver.example.org",
+        "remote_bind_port": 5432,  
+        "local_bind_port": 5559
+    },
+    "sync": {
+        "interval_minutes": 5
+    }
+}

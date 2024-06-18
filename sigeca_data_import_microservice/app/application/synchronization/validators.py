@@ -42,9 +42,6 @@ def validate_facilities_dataframe(df: DataFrame) -> DataFrame:
         & (col("province").isNotNull() & (col("province") != ""))
     )
 
-    # Check if 'is_deleted' equals false
-    df = df.filter(col("is_deleted") == False)
-
     # Validate and convert 'latitude' and 'longitude'
     df = df.withColumn(
         "latitude_valid",

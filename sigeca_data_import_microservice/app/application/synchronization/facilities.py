@@ -2,7 +2,7 @@ import logging
 from pyspark.sql import DataFrame
 from pyspark.sql import SparkSession
 import uuid
-from pyspark.sql.functions import col, udf
+from pyspark.sql.functions import col, udf, from_json, when, array_except, concat, size
 from app.domain.resources import (
     FacilityResourceRepository,
     GeographicZoneResourceRepository,
@@ -11,6 +11,7 @@ from app.domain.resources import (
     FacilityTypeResourceRepository,
 )
 from app.infrastructure.sigeca_api_client import SigecaApiClient
+from app.infrastructure.open_lmis_api_client import OpenLmisApiClient
 from pyspark.sql.types import (
     StructType,
     StructField,
@@ -19,11 +20,11 @@ from pyspark.sql.types import (
     TimestampType,
     ArrayType,
     DoubleType,
-    DataType
+    DataType,
 )
 from app.infrastructure.jdbc_reader import JDBCReader
 from .validators import validate_facilities_dataframe
-from .geo_zones import GeoZoneSynchronization
+from .geo_zones import ProvinceSynchronization, MunicipalitySynchronization
 from .facility_types import FacilityTypeSynchronization
 from .product import ProgramSynchronization
 import json
@@ -49,10 +50,14 @@ facility_schema = StructType(
         StructField("longitude", StringType(), True),
         StructField(
             "services",
-           ArrayType(StructType([
-        StructField("name", StringType(), True),
-        StructField("code", StringType(), True)
-    ])),
+            ArrayType(
+                StructType(
+                    [
+                        StructField("name", StringType(), True),
+                        StructField("code", StringType(), True),
+                    ]
+                )
+            ),
             True,
         ),
     ]
@@ -64,6 +69,7 @@ class FacilitySynchronizationService:
         self,
         jdbc_reader: JDBCReader,
         facility_client: SigecaApiClient,
+        lmis_client: OpenLmisApiClient,
         facility_repository: FacilityResourceRepository,
         geo_zone_repo: GeographicZoneResourceRepository,
         facility_type_repo: FacilityTypeResourceRepository,
@@ -72,6 +78,7 @@ class FacilitySynchronizationService:
     ):
         self.facility_client = facility_client
         self.facility_repository = facility_repository
+        self.lmis_client = lmis_client
         self.geo_zone_repo = geo_zone_repo
         self.facility_type_repo = facility_type_repo
         self.operator_repo = operator_repo
@@ -94,7 +101,7 @@ class FacilitySynchronizationService:
             joined = valid_external_df.join(
                 existing_facilities,
                 valid_external_df["facilities.code"] == existing_facilities["code"],
-                "left"
+                "left",
             )
 
             create, update, delete = self._split_df(joined)
@@ -102,8 +109,6 @@ class FacilitySynchronizationService:
             self._create_new_facilities(create)
             self._update_existing_facilities(update)
             self._delete_removed_facilities(delete)
-
-            raise ValueError("Fail")
 
             # Log the results
             logging.info("Facility synchronization completed successfully")
@@ -119,10 +124,12 @@ class FacilitySynchronizationService:
         ).alias("facilities")
 
         # Check for mandatory fields and valid relations
-        df = validate_facilities_dataframe(df)
-        self.synchronize_mising_geographic_zones(df)
-        self.synchronize_mising_types(df)
-        self.synchronize_products(df)
+        df = validate_facilities_dataframe(df).filter(
+            col("facilities.is_deleted") == False
+        )
+        # self.synchronize_mising_geographic_zones(df)
+        # self.synchronize_mising_types(df)
+        # self.synchronize_products(df)
 
         # Currently skip, on UAT no operators exist
         # self.synchronize_operators()
@@ -156,34 +163,41 @@ class FacilitySynchronizationService:
         types = self.facility_type_repo.get_all().alias("facility_type")
         df = df.join(types, df["category"] == types["name"], "left")
         return df
-    
-    def _add_supported_program_info_to_df(self, df): 
+
+    def _add_supported_program_info_to_df(self, df):
         programs = self.program_repo.get_all().alias("program")
-        code_id_dict = {row['code']: row['id'] for row in programs.collect()}
+        code_id_dict = {row["code"]: row["id"] for row in programs.collect()}
 
-        add_info = udf(lambda supported_programs: {entry['code']: code_id_dict.get(entry['code'], None) for entry in supported_programs if entry['code'] in code_id_dict})
+        add_info = udf(
+            lambda supported_programs: json.dumps(
+                {
+                    entry["code"]: code_id_dict.get(entry["code"], None)
+                    for entry in supported_programs
+                    if entry["code"] in code_id_dict
+                }
+            )
+        )
         df = df.withColumn("code_id_dict", add_info(col("services")))
-        return df 
-
-
-    def fetch_existing_data(self, query):
-        query = repository.generate_sql_query()
-        return self.spark.read.jdbc(
-            url=self.db_url, table=f"({query}) AS tmp", properties=self.jdbc_properties
-        ).collect()
+        return df
 
     def synchronize_mising_geographic_zones(self, df: DataFrame):
-        GeoZoneSynchronization(
-            self.jdbc_reader, df, self.geo_zone_repo
-        ).synchronize_missing_geo_zones()
+        ProvinceSynchronization(
+            self.jdbc_reader, df, self.geo_zone_repo, self.lmis_client
+        ).synchronize()
+
+        MunicipalitySynchronization(
+            self.jdbc_reader, df, self.geo_zone_repo, self.lmis_client
+        ).synchronize()
 
     def synchronize_mising_types(self, df):
         FacilityTypeSynchronization(
-            self.jdbc_reader, df, self.facility_type_repo
+            self.jdbc_reader, df, self.facility_type_repo, self.lmis_client
         ).synchronize()
 
     def synchronize_products(self, df):
-        ProgramSynchronization(self.jdbc_reader, df, self.program_repo).synchronize()
+        ProgramSynchronization(
+            self.jdbc_reader, df, self.program_repo, self.lmis_client
+        ).synchronize()
 
     def _split_df(self, df):
         deleted = df.filter(col("facilities.is_deleted") == True)
@@ -194,10 +208,26 @@ class FacilitySynchronizationService:
         return new_facilities, updated_facilities, deleted
 
     def _create_new_facilities(self, facilities):
+        format_payload_f = self.format_payload_f()
+        df = facilities.withColumn(
+            "payload",
+            format_payload_f(
+                col(f"facilities.name"),
+                col(f"facilities.code"),
+                col("municipality.id"),
+                col("facility_type.id"),
+                col("code_id_dict"),
+            ),
+        )
+
+        for row in df.collect():
+            self._create_request(row)
+
+    def format_payload_f(self):
         format_payload_f = udf(
-            lambda name, code, geographic_zone, facility_type, supported_programs: json.dumps(
+            lambda id, name, code, geographic_zone, facility_type, supported_programs: json.dumps(
                 {
-                    "id": str(uuid.uuid4()),
+                    "id": id,
                     "code": code,
                     "name": name,
                     "geographicZone": {"id": geographic_zone},
@@ -205,35 +235,108 @@ class FacilitySynchronizationService:
                     "active": True,
                     "enabled": True,
                     "supportedPrograms": [
-                        {"id": program_id} for program_id in json.loads(supported_programs).values()
+                        {"id": program_id}
+                        for program_id in json.loads(supported_programs).values()
                     ],
                 }
             )
         )
-        df = (
-            facilities.withColumn(
-                "payload",
-                format_payload_f(
-                    col(f"facilities.name"),
-                    col(f"facilities.code"),
-                    col("municipality.id"),
-                    col("facility_type.id"),
-                    col("code_id_dict"),
-                ),
-            )
+
+        return format_payload_f
+
+    def _create_request(self, data):
+        self.lmis_client.send_post_request("facilities", data["payload"])
+
+    def _update_request(self, data):
+        self.lmis_client.send_put_request("facilities", data["id"], data["payload"])
+
+    def _delete_request(self, data):
+        self.lmis_client.send_delete_request("facilities", data["id"])
+
+    def _update_existing_facilities(self, facilities: DataFrame):
+        format_payload_f = self.format_payload_f()
+        facilities = facilities.withColumn(
+            "payload",
+            format_payload_f(
+                col(f"existing_facilities.id"),
+                col(f"facilities.name"),
+                col(f"facilities.code"),
+                col("municipality.id"),
+                col("facility_type.id"),
+                col("code_id_dict"),
+            ),
         )
 
+        facilities = facilities.withColumn(
+            "oldPayload",
+            format_payload_f(
+                col(f"existing_facilities.id"),
+                col(f"existing_facilities.name"),
+                col(f"facilities.code"),
+                col("existing_facilities.geographiczoneid"),
+                col("existing_facilities.typeid"),
+                col("existing_facilities.supported_programs"),
+            ),
+        )
 
-        for row in df.collect():
-            self._sent_to_client(row)
+        schema = self.jdbc_reader.spark.read.json(
+            facilities.rdd.map(lambda row: row.payload)
+        ).schema  # Infer schema from the first JSON column
+        facilities = facilities.withColumn(
+            "json1_struct", from_json(col("payload"), schema)
+        )
+        facilities = facilities.withColumn(
+            "json2_struct", from_json(col("oldPayload"), schema)
+        )
 
-    def _sent_to_client(self, data):
-        print("THIS IS LEGIT CLIENT")
-        print(data["payload"])
+        def compare_for_any_change(df, col1, col2):
+            changes = []
+            for field in schema.fields:
+                field_name = field.name
+                if field.dataType.simpleString().startswith("array"):
+                    changes.append(
+                        when(
+                            size(
+                                concat(
+                                    array_except(
+                                        f"{col1}.{field_name}", f"{col2}.{field_name}"
+                                    ),
+                                    array_except(
+                                        f"{col2}.{field_name}", f"{col1}.{field_name}"
+                                    ),
+                                )
+                            )
+                            == 0,
+                            False,
+                        ).otherwise(True)
+                    )
+                else:
+                    changes.append(
+                        col(f"{col1}.{field_name}") != col(f"{col2}.{field_name}")
+                    )
 
+            # Aggregate all change flags into a single boolean indicating any change
+            change_column = (
+                when(sum([change.cast("int") for change in changes]) > 0, True)
+                .otherwise(False)
+                .alias("any_change")
+            )
 
-    def _update_existing_facilities(self, facilities):
-        pass
+            # Select the original JSON payloads and the any_change flag
+            return df.select(
+                "payload", "existing_facilities.id", "oldPayload", change_column
+            )
+
+        # Apply the comparison function
+        result_df = compare_for_any_change(facilities, "json1_struct", "json2_struct")
+        result_df = result_df.filter(col("any_change") == True)[
+            ["payload", "existing_facilities.id"]
+        ]
+        for row in result_df.collect():
+            self._update_request(row)
 
     def _delete_removed_facilities(self, facilities):
-        pass
+        df = facilities[["existing_facilities.id"]]
+        for row in df.collect():
+            if row["id"]:
+                self._delete_request(row)

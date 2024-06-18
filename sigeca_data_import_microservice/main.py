@@ -4,6 +4,7 @@ from app.infrastructure.open_lmis_api_client import OpenLmisApiClient
 from app.infrastructure.sigeca_api_client import SigecaApiClient
 from app.infrastructure.database import get_engine
 from app.application.synchronization.facilities import FacilitySynchronizationService
+from app.application.scheduler import FacilitySyncScheduler
 from app.domain.resources import (
     FacilityResourceRepository,
     GeographicZoneResourceRepository,
@@ -12,7 +13,7 @@ from app.domain.resources import (
     ProgramResourceRepository,
 )
 from app.infrastructure.jdbc_reader import JDBCReader
-
+import argparse
 
 def load_config(config_path):
     with open(config_path, "r") as config_file:
@@ -20,7 +21,21 @@ def load_config(config_path):
         return config
 
 
-# Usage Example
+def _run_scheduler(sync_service, sync_interval_minutes):
+    try:
+        scheduler = FacilitySyncScheduler(
+            sync_service,
+            sync_interval_minutes
+        )
+
+        scheduler.start()
+        # Keep the script running
+        while True:
+            pass
+    except (KeyboardInterrupt, SystemExit):
+        scheduler.stop()
+
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
     config = load_config("./config.json")
@@ -33,6 +48,7 @@ if __name__ == "__main__":
     sync_service = FacilitySynchronizationService(
         jdbc_reader,
         sigeca_client,
+        lmis_client,
         FacilityResourceRepository(jdbc_reader),
         GeographicZoneResourceRepository(jdbc_reader),
         FacilityTypeResourceRepository(jdbc_reader),
@@ -40,58 +56,23 @@ if __name__ == "__main__":
         ProgramResourceRepository(jdbc_reader),
     )
     try:
-        # lmis_client.login()
-        ##lmis_client.get_facilities()
-        # print(sigeca_client.fetch_facilities())
-        sync_service.synchronize_facilities()
+        if config["jdbc_reader"]["ssh_user"]:
+            jdbc_reader.setup_ssh_tunnel()
+        lmis_client.login()
 
-        # Example data
-        # facility_data = {
-        #     "name": "HEALTH CENTER BELA VISTA",
-        #     "code": "470010",
-        #     "abbreviation": "HC",
-        #     "category": "Health Center",
-        #     "ownership": "Public - National Health Service",
-        #     "management": "Public",
-        #     "municipality": "Ambriz",
-        #     "province": "Bengo",
-        #     "operational": True,
-        #     "latitude": "7.81807",
-        #     "longitude": "1380299"
-        # }
+        parser = argparse.ArgumentParser(description="Data synchronization service")
+        parser.add_argument("--run-mode", choices=["continuous", "one-time"], required=True, help="Run mode: 'continuous' to start the scheduler or 'one-time' to execute one-time integration")
+        args = parser.parse_args()
 
-        # geo_zone_data = {
-        #     "name": "Ambriz",
-        #     "province": "Bengo"
-        # }
+        if args.run_mode == "continuous":
+            sync_interval_minutes = config["sync"]["interval_minutes"]
+            _run_scheduler(sync_service, sync_interval_minutes)
 
-        # # Create facility
-        # facility_response = client.create_facility(facility_data)
-        # print("Facility created successfully:", facility_response)
-
-        # # Update facility
-        # updated_facility_data = {
-        #     "name": "HEALTH CENTER BELA VISTA - UPDATED",
-        #     "abbreviation": "HC",
-        #     "category": "Health Center",
-        #     "ownership": "Public - National Health Service",
-        #     "management": "Public",
-        #     "municipality": "Ambriz",
-        #     "province": "Bengo",
-        #     "operational": True,
-        #     "latitude": "7.81807",
-        #     "longitude": "1380299"
-        # }
-        # update_response = client.update_facility("470010", updated_facility_data)
-        # print("Facility updated successfully:", update_response)
-
-        # # Delete facility
-        # delete_response = client.delete_facility("470010")
-        # print(delete_response["message"])
-
-        # # Create geo zone
-        # geo_zone_response = client.create_geo_zone(geo_zone_data)
-        # print("Geographic zone created successfully:", geo_zone_response)
+        elif args.run_mode == "one-time":
+            sync_service.synchronize_facilities()
 
     except Exception as e:
         logging.exception(e)
+    finally:
+        if config["jdbc_reader"]["ssh_user"]:
+            jdbc_reader.close_ssh_tunnel()

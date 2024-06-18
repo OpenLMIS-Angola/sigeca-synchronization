@@ -39,8 +39,6 @@ class OpenLmisApiClient:
 
         response = requests.post(url, headers=headers, data=data)
 
-        print(response.status_code)
-
         if response.status_code == 200:
             self.token = response.json().get("access_token")
             self.headers["Authorization"] = f"Bearer {self.token}"
@@ -51,64 +49,35 @@ class OpenLmisApiClient:
             )
             raise Exception("Failed to log in")
 
-    def create_facility(self, facility_data):
-        """Create a new facility"""
-        url = f"{self.api_url}/{self.FACILITIES_URI}"
-        response = requests.post(
-            url, data=json.dumps(facility_data), headers=self.headers
-        )
+    def send_post_request(self, uri, payload: str):
+        url = f"{self.api_url}/{uri}"
+        self.headers["Content-Type"] = "application/json"
+        response = requests.post(url, data=payload, headers=self.headers)
         if response.status_code == 201:
             return response.json()
         else:
             raise Exception(
-                f"Failed to create facility: {response.status_code} {response.text}"
+                f"Failed to POST {url}: {response.status_code} {response.text}"
             )
 
-    def get_facilities(self):
-        """Create a new facility"""
-        url = f"{self.api_url}/{self.FACILITIES_URI}"
-        response = requests.get(url, headers=self.headers)
-
-        if response.status_code == 201:
-            print(response.json())
-        else:
-            raise Exception(
-                f"Failed to create facility: {response.status_code} {response.text}"
-            )
-
-    def create_geo_zone(self, geo_zone_data):
-        """Create a new geographic zone"""
-        url = f"{self.api_url}/{self.GEOGRAPHICAL_ZONES_URI}"
-        response = requests.post(
-            url, data=json.dumps(geo_zone_data), headers=self.headers
-        )
-        if response.status_code == 201:
-            return response.json()
-        else:
-            raise Exception(
-                f"Failed to create geographic zone: {response.status_code} {response.text}"
-            )
-
-    def update_facility(self, facility_id, facility_data):
-        """Update an existing facility"""
-        url = f"{self.api_url}/facilities/{facility_id}"
-        response = requests.put(
-            url, data=json.dumps(facility_data), headers=self.headers
-        )
+    def send_put_request(self, uri: str, id: str, payload: str):
+        url = f"{self.api_url}/{uri}/{id}"
+        self.headers["Content-Type"] = "application/json"
+        response = requests.put(url, data=payload, headers=self.headers)
         if response.status_code == 200:
             return response.json()
         else:
             raise Exception(
-                f"Failed to update facility: {response.status_code} {response.text}"
+                f"Failed to PUT {url}: {response.status_code} {response.text}"
             )
 
-    def delete_facility(self, facility_id):
-        """Delete an existing facility"""
-        url = f"{self.api_url}/facilities/{facility_id}"
+    def send_delete_request(self, uri: str, id: str):
+        url = f"{self.api_url}/{uri}/{id}"
+        self.headers["Content-Type"] = "application/json"
         response = requests.delete(url, headers=self.headers)
         if response.status_code == 204:
-            return {"status": "success", "message": "Facility deleted successfully"}
+            return
         else:
             raise Exception(
-                f"Failed to delete facility: {response.status_code} {response.text}"
+                f"Failed to DELETE {url}: {response.status_code} {response.text}"
             )

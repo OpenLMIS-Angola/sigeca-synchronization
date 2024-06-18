@@ -8,131 +8,125 @@ from app.domain.resources import (
     FacilityOperatorResourceRepository,
     ProgramResourceRepository,
     FacilityTypeResourceRepository,
+    BaseResourceRepository,
 )
 from app.infrastructure.sigeca_api_client import SigecaApiClient
+from app.infrastructure.open_lmis_api_client import OpenLmisApiClient
 
 from app.infrastructure.jdbc_reader import JDBCReader
 from .validators import validate_facilities_dataframe
 import unidecode
 import json
+from abc import ABC, abstractmethod
+from .abstract import FacilitySupplementSynchronization
 
 logger = logging.getLogger(__name__)
 
 
-class GeoZoneSynchronization:
-    def __init__(
-        self,
-        jdbc_reader: JDBCReader,
-        facilities: DataFrame,
-        geo_zone_repo: GeographicZoneResourceRepository,
-    ):
-        self.facilities = facilities
-        self.geo_zone_repo = geo_zone_repo
-        self.jdbc_reader = jdbc_reader
+class GeoZoneSynchronization(FacilitySupplementSynchronization):
+    endpoint = "geographicZones"
 
-    def synchronize_missing_geo_zones(self):
+    @property
+    def geo_location_level(self):
+        raise NotImplementedError()
+
+    @property
+    def sigeca_location_alias(self):
+        raise NotImplementedError()
+
+    def add_parent(self, df):
+        raise NotImplementedError()
+
+    def get_level_id(self):
+        levels = self.repo.get_levels()
+        return levels.filter(col("levelnumber") == self.geo_location_level).first().id
+
+    def add_code(self, reduced_df):
+        indicator = self.sigeca_location_alias[0]
+        create_codes_f = udf(
+            lambda x: f"gz-{unidecode.unidecode(x.lower())}-{indicator}"
+        )
+        reduced_df = reduced_df.withColumn(
+            "code", create_codes_f(col(f"facilities.{self.sigeca_location_alias}"))
+        )
+
+        return reduced_df
+
+    def _add_missing(self):
         try:
-            self._add_missing_provinces()
-            self._add_missing_municipalities()
-            logging.info("Facility synchronization completed successfully")
+            df = self._create_joined_df()
+            missing = self.validate(df)
+            # Expected only one highest level region
+            missing = self.add_parent(missing)
+            self._add_missing_geo_location(missing)
         except Exception as e:
             logging.error(f"An error occurred during facility synchronization: {e}")
             raise
 
     def _create_joined_df(self):
         df = self.facilities.alias("facilities")
-        geo_zone_df = self.geo_zone_repo.get_all().alias("geo_zone")
-        municipalities = geo_zone_df.filter(col("levelnumber") == 3).alias(
-            "municipality"
-        )
-        province = geo_zone_df.filter(col("levelnumber") == 2).alias("province")
+        geo_zone_df = self.repo.get_all().alias("geo_zone")
+        relevant_zones = geo_zone_df.filter(
+            col("levelnumber") == self.geo_location_level
+        ).alias("geo_zone")
 
         # Validate foreign keys
         df = df.join(
-            municipalities, df["municipality"] == municipalities["name"], "left"
+            relevant_zones,
+            df[f"facilities.{self.sigeca_location_alias}"] == relevant_zones["name"],
+            "left",
         )
-        df = df.join(province, df["province"] == province["name"], "left")
         return df
 
     def validate(self, facilities_df):
         # Extract services names from the nested structure
-        missing_municipality = self._validate_geo_zone_on_level(
-            facilities_df, "municipality"
-        )
-        missing_province = self._validate_geo_zone_on_level(facilities_df, "province")
-        return missing_municipality, missing_province
+        missing = facilities_df.filter((col(f"geo_zone.id").isNull()))
+        num_invalid_lat_long = missing.count()
+        if num_invalid_lat_long > 0:
+            logger.warning(
+                f"Found {num_invalid_lat_long} facilities with non existing province present:"
+            )
+            # Log details of invalid entries
+            missing.distinct()[
+                ["facilities.code", "facilities.name", f"facilities.province"]
+            ].show()
+        else:
+            logger.info(f"All {self.sigeca_location_alias} matching.")
+        return missing
 
-    def _add_missing_municipalities(self):
-        df = self._create_joined_df()
-        levels = self.geo_zone_repo.get_levels()
-        level_id = levels.filter(col("levelnumber") == 3).first().id
-        missing_municipality, missing_province = self.validate(df)
-
-        geo_zone_df = (
-            self.geo_zone_repo.get_all()
-            .alias("geo_zone")
-            .filter(col("levelnumber") == 2)[["id", "name", "levelnumber"]]
-            .collect()
-        )
-
-        parents = {}
-        for item in geo_zone_df:
-            parents[item.name] = item.id
-
-        add_parent_id = udf(lambda province: parents.get(province, None))
-        missing_municipality = missing_municipality.withColumn(
-            "parent_id", add_parent_id(col("province"))
-        )
-        self._add_missing_geo_location(missing_municipality, level_id, "municipality")
-
-    def _add_missing_provinces(
-        self,
-    ):
-        df = self._create_joined_df()
-        levels = self.geo_zone_repo.get_levels()
-        level_id = levels.filter(col("levelnumber") == 2).first().id
-        missing_municipality, missing_province = self.validate(df)
-        # Expected only one highest level region
-        geo_zone_df = self.geo_zone_repo.get_all().alias("geo_zone")
-        region = geo_zone_df.filter(col("levelnumber") == 1).alias("region").first()
-        add_parent_id = udf(lambda: region["id"])
-        missing_province = missing_province.withColumn("parent_id", add_parent_id())
-
-        self._add_missing_geo_location(missing_province, level_id, "province")
-
-    def _add_missing_geo_location(
-        self, missing: DataFrame, level_id: str, level_name: str
-    ):
-        reduced_df = missing[[f"facilities.{level_name}", "parent_id"]]
-        create_codes_f = udf(lambda x: f"gz-{unidecode.unidecode(x.lower())}")
+    def _add_missing_geo_location(self, missing: DataFrame):
+        level_id = self.get_level_id()
+        reduced_df = missing[[f"facilities.{self.sigeca_location_alias}", "parent_id"]]
         add_level_id_f = udf(lambda: level_id)
         format_payload = udf(
             lambda name, code, level, parent: json.dumps(
-                {"code": code, "name": name, "level": {"id": level}, "parent": parent}
+                {
+                    "code": code,
+                    "name": name,
+                    "level": {"id": level},
+                    "parent": {"id": parent},
+                }
             )
         )
-        reduced_df = reduced_df.withColumn(
-            "code", create_codes_f(col(f"facilities.{level_name}"))
-        )
+
+        reduced_df = self.add_code(reduced_df)
         reduced_df = reduced_df.withColumn("levelid", add_level_id_f())
         reduced_df = reduced_df.withColumn(
             "payload",
             format_payload(
-                col(f"facilities.{level_name}"),
+                col(f"facilities.{self.sigeca_location_alias}"),
                 col("code"),
                 col("levelid"),
                 col("parent_id"),
             ),
         )
 
-        reduced_df = reduced_df.distinct()
-        reduced_df.show()
+        reduced_df = reduced_df[["payload"]].distinct()
         for row in reduced_df.collect():
-            self._sent_to_client(row)
-
-    def _sent_to_client(self, data):
-        print("THIS IS LEGIT CLIENT")
-        print(data["payload"])
+            try:
+                self._sent_to_client(row)
+            except Exception as e:
+                logger.warning(f"Failed to synch resource: {row}\nReason: {e}")
 
     def _validate_geo_zone_on_level(self, facilities_df, level):
         missing = facilities_df.filter((col(f"{level}.id").isNull()))
@@ -148,3 +142,43 @@ class GeoZoneSynchronization:
         else:
             logger.info(f"All {level} matching.")
         return missing
+
+
+class ProvinceSynchronization(GeoZoneSynchronization):
+    endpoint = "geographicZones"
+    geo_location_level = 2
+    sigeca_location_alias = "province"
+
+    def add_parent(self, df):
+        parent = (
+            self.repo.get_all().filter(col("levelnumber") == 1).alias("region").first()
+        )
+        add_parent_id = udf(lambda: parent["id"])
+        missing = df.withColumn("parent_id", add_parent_id())
+        return missing
+
+    def get_level_id(self):
+        levels = self.repo.get_levels()
+        return levels.filter(col("levelnumber") == self.geo_location_level).first().id
+
+
+class MunicipalitySynchronization(GeoZoneSynchronization):
+    endpoint = "geographicZones"
+    geo_location_level = 3
+    sigeca_location_alias = "municipality"
+
+    def add_parent(self, df):
+        parents = (
+            self.repo.get_all().filter(col("levelnumber") == 2).alias("parents")
+        )[["name", "id"]].collect()
+        parents_dict = {}
+        for row in parents:
+            parents_dict[row["name"]] = row["id"]
+
+        add_parent_id = udf(lambda province: parents_dict[province])
+        missing = df.withColumn("parent_id", add_parent_id(col("province")))
+        return missing
+
+    def get_level_id(self):
+        levels = self.repo.get_levels()
+        return levels.filter(col("levelnumber") == self.geo_location_level).first().id

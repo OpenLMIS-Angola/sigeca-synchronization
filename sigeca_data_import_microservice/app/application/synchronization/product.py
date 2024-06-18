@@ -10,33 +10,19 @@ from app.domain.resources import (
     FacilityTypeResourceRepository,
 )
 from app.infrastructure.sigeca_api_client import SigecaApiClient
+from app.infrastructure.open_lmis_api_client import OpenLmisApiClient
 
 from app.infrastructure.jdbc_reader import JDBCReader
 from .validators import validate_facilities_dataframe
 import unidecode
 import json
+from .abstract import FacilitySupplementSynchronization
 
 logger = logging.getLogger(__name__)
 
 
-class ProgramSynchronization:
-    def __init__(
-        self,
-        jdbc_reader: JDBCReader,
-        facilities: DataFrame,
-        repo: ProgramResourceRepository,
-    ):
-        self.facilities = facilities
-        self.repo = repo
-        self.jdbc_reader = jdbc_reader
-
-    def synchronize(self):
-        try:
-            self._add_missing_programs()
-            logging.info("Products synchronization completed successfully")
-        except Exception as e:
-            logging.error(f"An error occurred during products synchronization: {e}")
-            raise
+class ProgramSynchronization(FacilitySupplementSynchronization):
+    endpoint = "programs"
 
     def _create_joined_df(self):
         df = self.facilities.alias("facilities").withColumn(
@@ -57,18 +43,13 @@ class ProgramSynchronization:
 
         num_invalid = missing.count()
         if num_invalid > 0:
-            logger.warning(
-                f"Found {num_invalid} non existing program for facilities:"
-            )
+            logger.warning(f"Found {num_invalid} non existing program for facilities")
             # Log details of invalid entries
-            missing.distinct()[
-                ["facilities.code", "facilities.name", "supported_program.name", "supported_program.code"]
-            ].show()
         else:
             logger.info(f"All productss matching.")
         return missing
 
-    def _add_missing_programs(self):
+    def _add_missing(self):
         df = self._create_joined_df()
         missing: DataFrame = self.validate(df)
 
@@ -92,7 +73,3 @@ class ProgramSynchronization:
         reduced_df.show()
         for row in reduced_df.collect():
             self._sent_to_client(row)
-
-    def _sent_to_client(self, data):
-        print("THIS IS LEGIT CLIENT")
-        print(data["payload"])

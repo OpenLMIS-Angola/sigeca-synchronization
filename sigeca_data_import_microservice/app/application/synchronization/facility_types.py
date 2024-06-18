@@ -15,30 +15,13 @@ from app.infrastructure.jdbc_reader import JDBCReader
 from .validators import validate_facilities_dataframe
 import unidecode
 import json
+from .abstract import FacilitySupplementSynchronization
 
 logger = logging.getLogger(__name__)
 
 
-class FacilityTypeSynchronization:
-    def __init__(
-        self,
-        jdbc_reader: JDBCReader,
-        facilities: DataFrame,
-        repo: FacilityTypeResourceRepository,
-    ):
-        self.facilities = facilities
-        self.repo = repo
-        self.jdbc_reader = jdbc_reader
-
-    def synchronize(self):
-        try:
-            self._add_missing_facility_types()
-            logging.info("Facility type synchronization completed successfully")
-        except Exception as e:
-            logging.error(
-                f"An error occurred during facility type synchronization: {e}"
-            )
-            raise
+class FacilityTypeSynchronization(FacilitySupplementSynchronization):
+    endpoint = "facilityTypes"
 
     def _create_joined_df(self):
         df = self.facilities.alias("facilities")
@@ -60,15 +43,11 @@ class FacilityTypeSynchronization:
             logger.warning(
                 f"Found {num_invalid} facilities with non existing type present:"
             )
-            # Log details of invalid entries
-            missing.distinct()[
-                ["facilities.code", "facilities.name", "category"]
-            ].show()
         else:
             logger.info(f"All facility types matching.")
         return missing
 
-    def _add_missing_facility_types(self):
+    def _add_missing(self):
         df = self._create_joined_df()
         missing: DataFrame = self.validate(df)
 
@@ -105,7 +84,3 @@ class FacilityTypeSynchronization:
         reduced_df.show()
         for row in reduced_df.collect():
             self._sent_to_client(row)
-
-    def _sent_to_client(self, data):
-        print("THIS IS LEGIT CLIENT")
-        print(data["payload"])
