@@ -31,6 +31,7 @@ class JDBCReader:
             .getOrCreate()
         )
         self.spark.sparkContext.setLogLevel(config.get("log_level", "WARN"))
+        self.tunnel = None
 
     def setup_ssh_tunnel(self):
         self.tunnel = SSHTunnelForwarder(
