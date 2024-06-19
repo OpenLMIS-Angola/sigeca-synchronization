@@ -31,9 +31,6 @@ def _run_scheduler(session_maker, jdbc_reader, sigeca_data_export_service, sync_
         )
 
         scheduler.start()
-        # Keep the script running
-        while True:
-            pass
     except (KeyboardInterrupt, SystemExit):
         scheduler.stop()
 

@@ -1,5 +1,5 @@
 from typing import List
-from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.schedulers.background import BlockingScheduler
 from app.application.services.sigeca_data_export_service import DataSyncService
 from app.infrastructure.api import ResourceAPIClient
 from app.infrastructure.utils import ChangeLogOperationEnum
@@ -22,7 +22,7 @@ class ChangesSyncScheduler:
         synchronized_operations: List[ChangeLogOperationEnum] = None,
     ):
         self.sync_service = sync_service
-        self.scheduler = BackgroundScheduler()
+        self.scheduler = BlockingScheduler()
         self.session_maker = session_maker
         self.sync_interval_minutes = sync_interval_minutes
         self.synchronized_resources = synchronized_resources

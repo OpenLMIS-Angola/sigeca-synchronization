@@ -59,12 +59,16 @@ Create the `config.json` file with your specific settings. It can be created bas
         "login_token": "dSFdoi1fb4l6bn16YxhgbxhlbdU=" // Basic token value taken from the client request of the server
     },
     "sigeca_api" : {
-        "api_url": "http://exmapleapisiggeca.org/api", // Endpoint used for fetching source of truth for facilities
+        "api_url": "http://exmapleapisiggeca.org/api", // Endpoint used for fetchingsource of truth for facilities
         "headers": { // Headers used for the synchronization 
-            "ContentType": "application/json" 
+            "ContentType": "application/json"
+        },
+        "credentials": {  // Credentials used for authorization of user 
+            "username": "username",
+            "password": "password"
         }
     },
-    "database": { // DB Concetion used for the validating existing facilities in ORM 
+    "database": { // DB Concetion used for the validating existing facilities in ORM
         "username": "db_user",
         "password": "db_passwd", 
         "host": "localhost", 

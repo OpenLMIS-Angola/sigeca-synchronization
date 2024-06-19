@@ -212,6 +212,7 @@ class FacilitySynchronizationService:
         df = facilities.withColumn(
             "payload",
             format_payload_f(
+                col(f"existing_facilities.id"),
                 col(f"facilities.name"),
                 col(f"facilities.code"),
                 col("municipality.id"),

@@ -9,6 +9,10 @@
         "api_url": "http://exmapleapisiggeca.org/api",
         "headers": {
             "ContentType": "application/json"
+        },
+        "credentials": {
+            "username": "username", 
+            "password": "password"
         }
     },
     "database": {

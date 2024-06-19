@@ -29,9 +29,6 @@ def _run_scheduler(sync_service, sync_interval_minutes):
         )
 
         scheduler.start()
-        # Keep the script running
-        while True:
-            pass
     except (KeyboardInterrupt, SystemExit):
         scheduler.stop()
 

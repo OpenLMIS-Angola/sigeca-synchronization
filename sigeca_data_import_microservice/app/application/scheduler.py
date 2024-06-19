@@ -1,6 +1,6 @@
 from .synchronization.facilities import FacilitySynchronizationService
 import logging
-from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.schedulers.background import BlockingScheduler
 
 
 class FacilitySyncScheduler:
@@ -11,7 +11,7 @@ class FacilitySyncScheduler:
     ):
         self.sync_service = sync_service
         self.sync_interval_minutes = interval
-        self.scheduler = BackgroundScheduler()
+        self.scheduler = BlockingScheduler()
 
     def start(self):
         self.scheduler.add_job(
