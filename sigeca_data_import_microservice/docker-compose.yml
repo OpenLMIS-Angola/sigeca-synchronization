@@ -4,7 +4,7 @@ version: '3.8'
 services:
   app:
     build: .
-    container_name: export_service
+    container_name: import_service
     volumes:
       - .:/app
       - logs:/app/logs
