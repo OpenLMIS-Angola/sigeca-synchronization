@@ -29,8 +29,6 @@ class SigecaApiClient:
             )
             raise Exception("Attempt to sync invalid payload")
 
-        print(self.skip_verification)
-
         self._get_token()
         url = f"{self.api_url}/{self.SYNC_URI}"
 
