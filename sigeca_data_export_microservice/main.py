@@ -12,7 +12,7 @@ from app.application import DataSyncService
 from app.application.scheduler.sigeca_data_export_scheduler import ChangesSyncScheduler
 from app.application.synchronizations import FacilityResourceSynchronization
 from app.infrastructure import (ChangeLogOperationEnum, JDBCReader,
-                                ResourceAPIClient)
+                                SigecaApiClient)
 from app.infrastructure.database import Base, get_engine, get_session
 
 
@@ -46,7 +46,7 @@ def main():
     Base.metadata.create_all(engine)
 
     jdbc_reader = JDBCReader(config["jdbc_reader"])
-    api_client = ResourceAPIClient(config["api"]["url"], config["api"]["token"])
+    api_client = SigecaApiClient(config["sigeca_api"])
     sigeca_data_export_service = DataSyncService(session_maker)
 
     sync_interval_minutes = config["sync"]["interval_minutes"]
