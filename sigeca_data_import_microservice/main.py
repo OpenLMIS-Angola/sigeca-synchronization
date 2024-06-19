@@ -53,7 +53,7 @@ if __name__ == "__main__":
         ProgramResourceRepository(jdbc_reader),
     )
     try:
-        if config["jdbc_reader"]["ssh_user"]:
+        if config["jdbc_reader"].get("ssh_user"):
             jdbc_reader.setup_ssh_tunnel()
         lmis_client.login()
 
@@ -71,5 +71,5 @@ if __name__ == "__main__":
     except Exception as e:
         logging.exception(e)
     finally:
-        if config["jdbc_reader"]["ssh_user"]:
+        if config["jdbc_reader"].get("ssh_user"):
             jdbc_reader.close_ssh_tunnel()

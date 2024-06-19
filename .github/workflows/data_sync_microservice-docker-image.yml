@@ -1,4 +1,4 @@
-name: Build and Push Docker Image For Sigeca Data Export Microservice
+name: Docker Image Deployment For Microservices
 
 on:
   push:
