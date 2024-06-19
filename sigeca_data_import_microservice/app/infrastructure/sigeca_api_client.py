@@ -5,14 +5,15 @@ from requests.auth import HTTPBasicAuth
 
 
 class SigecaApiClient:
-    LOGIN_URI = "token"
-    FACILITIES_URI = "facilities"
+    LOGIN_URI = "token/"
+    FACILITIES_URI = "facilities/"
     GEOGRAPHICAL_ZONES_URI = "geographicZones"
 
     def __init__(self, api_config: dict):
         api_url: str = api_config["api_url"]
         headers: str = api_config["headers"]
         self.credentials = api_config['credentials']
+        self.skip_verification: bool = api_config.get('skip_verification') or False
 
         if api_url.endswith("/"):
             api_url = api_url[:-1]
@@ -29,7 +30,7 @@ class SigecaApiClient:
         self._get_token()
         url = f"{self.api_url}/{self.FACILITIES_URI}"
 
-        response = requests.get(url, headers=self.headers)
+        response = requests.get(url, headers=self.headers, verify=not self.skip_verification)
 
         if response.status_code == 200:
             return response.json() 
@@ -45,11 +46,11 @@ class SigecaApiClient:
         url = f"{self.api_url}/{self.LOGIN_URI}"
         data = self.credentials
 
-        response = requests.post(url, headers=self.headers, data=data)
+        response = requests.post(url, headers=self.headers, data=data, verify=not self.skip_verification)
 
         if response.status_code == 200:
             self.token = response.json().get("access_token")
-            self.headersp['Authorization'] = F"Bearer {self.token}"
+            self.headers['Authorization'] = F"Bearer {self.token}"
         else:
             logging.error(
                 f"Failed to log into OpenLMIS API: {response.status_code} {response}"

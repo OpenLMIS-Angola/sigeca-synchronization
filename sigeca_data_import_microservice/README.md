@@ -66,7 +66,8 @@ Create the `config.json` file with your specific settings. It can be created bas
         "credentials": {  // Credentials used for authorization of user 
             "username": "username",
             "password": "password"
-        }
+        },
+        "skip_verification": false // Skip SSL cerficate validation, USE FOR TEST ONLY
     },
     "database": { // DB Concetion used for the validating existing facilities in ORM
         "username": "db_user",

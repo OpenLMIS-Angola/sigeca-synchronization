@@ -2,7 +2,7 @@ import logging
 from pyspark.sql import DataFrame
 from pyspark.sql import SparkSession
 import uuid
-from pyspark.sql.functions import col, udf, from_json, when, array_except, concat, size
+from pyspark.sql.functions import col, udf, from_json, when, array_except, concat, size, lit
 from app.domain.resources import (
     FacilityResourceRepository,
     GeographicZoneResourceRepository,
@@ -317,11 +317,16 @@ class FacilitySynchronizationService:
                     )
 
             # Aggregate all change flags into a single boolean indicating any change
-            change_column = (
-                when(sum([change.cast("int") for change in changes]) > 0, True)
-                .otherwise(False)
-                .alias("any_change")
-            )
+            if changes:
+                # Aggregate all change flags into a single boolean indicating any change
+                change_column = (
+                    when(sum([change.cast("int") for change in changes]) > 0, True)
+                    .otherwise(False)
+                    .alias("any_change")
+                )
+            else:
+                change_column = lit(False).alias("any_change")  # Handle the case when changes list is empty
+
 
             # Select the original JSON payloads and the any_change flag
             return df.select(
