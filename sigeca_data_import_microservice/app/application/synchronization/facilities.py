@@ -127,9 +127,9 @@ class FacilitySynchronizationService:
         df = validate_facilities_dataframe(df).filter(
             col("facilities.is_deleted") == False
         )
-        # self.synchronize_mising_geographic_zones(df)
-        # self.synchronize_mising_types(df)
-        # self.synchronize_products(df)
+        self.synchronize_mising_geographic_zones(df)
+        self.synchronize_mising_types(df)
+        self.synchronize_products(df)
 
         # Currently skip, on UAT no operators exist
         # self.synchronize_operators()
