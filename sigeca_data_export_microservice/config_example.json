@@ -1,23 +1,28 @@
 {
-    "api": {
-        "url": "https://api.example.com",  // URL of the external API to which data will be synchronized
-        "token": "your_api_token"          // Authentication token for accessing the external API
+    "sigeca_api" : {
+        "api_url": "https://example.com/api",
+        "headers": {},
+        "credentials": {
+            "username": "username",
+            "password": "password"
+        },
+        "skip_verification": false
     },
     "changelog_database": {
-        "username": "user1",               // Username for the database used to store synchronization logs
-        "password": "password1",           // Password for the database user
-        "host": "localhost",               // Hostname or IP address of the database server
-        "port": 5432,                      // Port number on which the database server is listening
-        "database": "database"             // Name of the database
+        "username": "user1",
+        "password": "password1",
+        "host": "localhost",
+        "port": 5432,
+        "database": "database"
     },
-    "jdbc_reader": { 
-        "jdbc_url": "jdbc:postgresql://localhost:5432/database",  // JDBC URL for connecting to the database
-        "jdbc_user": "user1",                                     // Username for the database used by JDBC Reader
-        "jdbc_password": "password1",                             // Password for the database user used by JDBC Reader
-        "jdbc_driver": "org.postgresql.Driver",                   // JDBC driver class for PostgreSQL
-        "log_level": "INFO"                                       // Log level for JDBC operations (e.g., INFO, DEBUG)
+    "jdbc_reader": {
+        "jdbc_url": "jdbc:postgresql://localhost:5432/database",
+        "jdbc_user": "user1",
+        "jdbc_password": "password1",
+        "jdbc_driver": "org.postgresql.Driver",
+        "log_level": "INFO"
     },
     "sync": {
-        "interval_minutes": 0.2   // Synchronization interval in minutes (0.2 minutes = 12 seconds for quick testing)
+        "interval_minutes": 0.2
     }
 }
