@@ -4,7 +4,7 @@ from typing import Any, Optional
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import from_json, col
 from datetime import datetime
-from .utils import ChangeLogOperationEnum
+from .utils import ChangeLogOperation
 import re
 
 
@@ -61,7 +61,7 @@ class JDBCReader:
         self,
         table_name: str,
         schema: StructType,
-        operation: ChangeLogOperationEnum = None,
+        operation: ChangeLogOperation = None,
         last_sync_timestamp: Optional[datetime] = None,
     ) -> DataFrame:
         """

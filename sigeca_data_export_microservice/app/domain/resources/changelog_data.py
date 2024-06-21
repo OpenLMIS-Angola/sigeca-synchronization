@@ -1,31 +1,19 @@
-from pyspark.sql import SparkSession
-from pyspark.sql.types import (
-    TimestampType,
-    IntegerType,
-    StructType,
-    StructField,
-    StringType,
-    BooleanType,
-    DateType,
-    StringType as UUIDType,
-)
-from pyspark.sql.functions import col, lit, current_date, expr
-import requests
 import json
-import pprint
-from abc import ABC, abstractmethod
-from pyspark.sql import DataFrame, SparkSession
-from typing import Callable, Any
+from uuid import uuid4
+from pyspark.sql.types import TimestampType, IntegerType, StructType, StructField, StringType
 
 from .abstract import ResourceReader
+from app.domain.resources.util import schema_map, table_map, map_data
 
 
-class CachangeLogResourceReader(ResourceReader):
-    def read_table_name(self):
-        return "changelog"
-
-    def read_schema_name(self) -> StructType:
+class ChangeLogResourceReader(ResourceReader):
+    @classmethod
+    def read_table_name(cls):
         return "data_changes"
+
+    @classmethod
+    def read_schema_name(cls):
+        return "changelog"
 
     def read_schema(self):
         return StructType(
@@ -40,28 +28,18 @@ class CachangeLogResourceReader(ResourceReader):
         )
 
     def transform_data(self, df):
-        # Generate a new UUID for the id column
-        generate_uuid = expr("uuid()")
+        return df.rdd.map(self._to_payload()).collect()
 
-        # Apply transformations to match the target schema
-        transformed_df = (
-            df.withColumn("id", generate_uuid)
-            .withColumn("reference_id", col("id"))
-            .withColumn("last_updated", current_date())
-            .withColumn("is_deleted", lit(False))
-            .select(
-                col("id"),
-                col("reference_id"),
-                col("active"),
-                col("code"),
-                col("comment"),
-                col("geographiczoneid").alias("geographic_zone_id"),
-                col("description"),
-                col("enabled"),
-                col("name"),
-                col("last_updated"),
-                col("is_deleted"),
-            )
-        )
+    @staticmethod
+    def _to_payload():
+        def map_schema(row):
+            return {
+                "id": str(uuid4()),
+                "schema_name": schema_map[(row.schema_name, row.table_name)],
+                "table_name": table_map[(row.schema_name, row.table_name)],
+                "operation": row.operation,
+                "change_time": row.change_time.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "row_data": map_data(json.loads(row.row_data), row.schema_name, row.table_name)
+            }
 
-        return transformed_df
+        return map_schema
