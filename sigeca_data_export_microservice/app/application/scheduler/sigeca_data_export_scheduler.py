@@ -1,25 +1,21 @@
 from typing import List
 from apscheduler.schedulers.background import BlockingScheduler
 from app.application.services.sigeca_data_export_service import DataSyncService
-from app.infrastructure.api import SigecaApiClient
-from app.infrastructure.utils import ChangeLogOperationEnum
+from app.infrastructure.utils import ChangeLogOperation
 from sqlalchemy.orm import sessionmaker
 from app.infrastructure.repository import SyncLogRepository
-from datetime import datetime
-from app.application.synchronizations import FacilityResourceSynchronization
 from app.application.synchronizations.abstract import ResourceSynchronization
-from app.domain import FacilityResourceReader
 import logging
 
 
 class ChangesSyncScheduler:
     def __init__(
-        self,
-        sync_service: DataSyncService,
-        session_maker: sessionmaker,
-        sync_interval_minutes: int,
-        synchronized_resources: List[ResourceSynchronization],
-        synchronized_operations: List[ChangeLogOperationEnum] = None,
+            self,
+            sync_service: DataSyncService,
+            session_maker: sessionmaker,
+            sync_interval_minutes: int,
+            synchronized_resources: List[ResourceSynchronization],
+            synchronized_operations: List[ChangeLogOperation] = None,
     ):
         self.sync_service = sync_service
         self.scheduler = BlockingScheduler()
@@ -57,7 +53,7 @@ class ChangesSyncScheduler:
         operation_value = operation.value if operation else "ALL"
         try:
             resource_name = resource.get_resource_name()
-            self.sync_service.sync_from_last_sucessfull_synchronization(
+            self.sync_service.sync_from_last_successful_synchronization(
                 resource, operation
             )
             sync_log_repo.add_log(
