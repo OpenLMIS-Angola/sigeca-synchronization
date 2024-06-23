@@ -1,41 +1,39 @@
+import argparse
 import json
 import logging
+import os
+
+from app.application.scheduler import FacilitySyncScheduler
+from app.application.synchronization.facilities import \
+    FacilitySynchronizationService
+from app.domain.resources import (FacilityOperatorResourceRepository,
+                                  FacilityResourceRepository,
+                                  FacilityTypeResourceRepository,
+                                  GeographicZoneResourceRepository,
+                                  ProgramResourceRepository)
+from app.infrastructure.database import get_engine
+from app.infrastructure.jdbc_reader import JDBCReader
 from app.infrastructure.open_lmis_api_client import OpenLmisApiClient
 from app.infrastructure.sigeca_api_client import SigecaApiClient
-from app.infrastructure.database import get_engine
-from app.application.synchronization.facilities import FacilitySynchronizationService
-from app.application.scheduler import FacilitySyncScheduler
-from app.domain.resources import (
-    FacilityResourceRepository,
-    GeographicZoneResourceRepository,
-    FacilityOperatorResourceRepository,
-    FacilityTypeResourceRepository,
-    ProgramResourceRepository,
-)
-from app.infrastructure.jdbc_reader import JDBCReader
-import argparse
-from dotenv import dotenv_values
-
+from dotenv import dotenv_values, load_dotenv
 
 
 def load_config(from_env=False):
     if from_env:
-        config = dotenv_values('./settings.env')
-        if 'sigeca_import_config' not in config.keys():
+        load_dotenv("./settings.env")
+        config = os.getenv("sigeca_import_config")
+        if not config:
             raise KeyError("Provided settings.env missing `sigeca_import_config` key.")
-        return json.loads(config['sigeca_import_config'])
+        return json.loads(config)
     else:
-        with open('config.json', "r") as config_file:
+        with open("config.json", "r") as config_file:
             config = json.load(config_file)
             return config
 
 
 def _run_scheduler(sync_service, sync_interval_minutes):
     try:
-        scheduler = FacilitySyncScheduler(
-            sync_service,
-            sync_interval_minutes
-        )
+        scheduler = FacilitySyncScheduler(sync_service, sync_interval_minutes)
 
         scheduler.start()
     except (KeyboardInterrupt, SystemExit):
@@ -44,8 +42,18 @@ def _run_scheduler(sync_service, sync_interval_minutes):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Data synchronization service")
-    parser.add_argument("--run-mode", choices=["continuous", "one-time"], required=True, help="Run mode: 'continuous' to start the scheduler or 'one-time' to execute one-time integration")
-    parser.add_argument("--env-config", required=False, action='store_true', help="Env Config: use stringified config comming form env instead of .json file")
+    parser.add_argument(
+        "--run-mode",
+        choices=["continuous", "one-time"],
+        required=True,
+        help="Run mode: 'continuous' to start the scheduler or 'one-time' to execute one-time integration",
+    )
+    parser.add_argument(
+        "--env-config",
+        required=False,
+        action="store_true",
+        help="Env Config: use stringified config comming form env instead of .json file",
+    )
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO)
@@ -71,8 +79,6 @@ if __name__ == "__main__":
         if config["jdbc_reader"].get("ssh_user"):
             jdbc_reader.setup_ssh_tunnel()
         lmis_client.login()
-
-
 
         if args.run_mode == "continuous":
             sync_interval_minutes = config["sync"]["interval_minutes"]
