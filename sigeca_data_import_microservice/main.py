@@ -14,11 +14,20 @@ from app.domain.resources import (
 )
 from app.infrastructure.jdbc_reader import JDBCReader
 import argparse
+from dotenv import dotenv_values
 
-def load_config(config_path):
-    with open(config_path, "r") as config_file:
-        config = json.load(config_file)
-        return config
+
+
+def load_config(from_env=False):
+    if from_env:
+        config = dotenv_values('./settings.env')
+        if 'sigeca_import_config' not in config.keys():
+            raise KeyError("Provided settings.env missing `sigeca_import_config` key.")
+        return json.loads(config['sigeca_import_config'])
+    else:
+        with open('config.json', "r") as config_file:
+            config = json.load(config_file)
+            return config
 
 
 def _run_scheduler(sync_service, sync_interval_minutes):
@@ -34,8 +43,14 @@ def _run_scheduler(sync_service, sync_interval_minutes):
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Data synchronization service")
+    parser.add_argument("--run-mode", choices=["continuous", "one-time"], required=True, help="Run mode: 'continuous' to start the scheduler or 'one-time' to execute one-time integration")
+    parser.add_argument("--env-config", required=False, action='store_true', help="Env Config: use stringified config comming form env instead of .json file")
+    args = parser.parse_args()
+
     logging.basicConfig(level=logging.INFO)
-    config = load_config("./config.json")
+
+    config = load_config(args.env_config)
     engine = get_engine(config["database"])
 
     lmis_client = OpenLmisApiClient(config["open_lmis_api"])
@@ -57,9 +72,7 @@ if __name__ == "__main__":
             jdbc_reader.setup_ssh_tunnel()
         lmis_client.login()
 
-        parser = argparse.ArgumentParser(description="Data synchronization service")
-        parser.add_argument("--run-mode", choices=["continuous", "one-time"], required=True, help="Run mode: 'continuous' to start the scheduler or 'one-time' to execute one-time integration")
-        args = parser.parse_args()
+
 
         if args.run_mode == "continuous":
             sync_interval_minutes = config["sync"]["interval_minutes"]

@@ -165,3 +165,4 @@ sigeca_data_export_microservice/config.json
 sigeca_data_import_microservice/config.json
 sigeca_data_import_microservice/mocked_facilities.json
 sigeca_data_import_microservice/private_key
+*/settings.env
