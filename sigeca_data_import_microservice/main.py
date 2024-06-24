@@ -78,13 +78,13 @@ if __name__ == "__main__":
     try:
         if config["jdbc_reader"].get("ssh_user"):
             jdbc_reader.setup_ssh_tunnel()
-        lmis_client.login()
 
         if args.run_mode == "continuous":
             sync_interval_minutes = config["sync"]["interval_minutes"]
             _run_scheduler(sync_service, sync_interval_minutes)
 
         elif args.run_mode == "one-time":
+            lmis_client.login()
             sync_service.synchronize_facilities()
 
     except Exception as e:
