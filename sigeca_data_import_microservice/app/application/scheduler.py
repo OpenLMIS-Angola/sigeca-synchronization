@@ -14,6 +14,7 @@ class FacilitySyncScheduler:
         self.scheduler = BlockingScheduler()
 
     def start(self):
+        self.run_sync() # Sync immedietly don't wait the interval for first trigger 
         self.scheduler.add_job(
             self.run_sync, "interval", minutes=self.sync_interval_minutes
         )
