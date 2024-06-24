@@ -12,10 +12,13 @@ class BaseResourceRepository:
 
 class FacilityResourceRepository(BaseResourceRepository):
     def get_all(self):
-        query = """(SELECT f.*, jsonb_object_agg(p.code, p.id) AS supported_programs
+        query = """(SELECT f.*, 
+            (case when count(p.code)= 0 then '{}'::jsonb
+            else jsonb_object_agg(coalesce(p.code, 'undefined'), p.id)
+            end) as supported_programs
             FROM referencedata.facilities f
-            JOIN referencedata.supported_programs sp ON sp.facilityid = f.id
-            JOIN referencedata.programs p ON sp.programid = p.id
+            LEFT JOIN referencedata.supported_programs sp ON sp.facilityid = f.id
+            LEFT JOIN referencedata.programs p ON sp.programid = p.id
             GROUP BY f.id
             ) AS facilities"""
         return self.jdbc_reader.read_data(query)
