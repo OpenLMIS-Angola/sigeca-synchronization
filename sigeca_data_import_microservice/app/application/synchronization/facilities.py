@@ -246,13 +246,22 @@ class FacilitySynchronizationService:
         return format_payload_f
 
     def _create_request(self, data):
-        self.lmis_client.send_post_request("facilities", data["payload"])
+        try:
+            self.lmis_client.send_post_request("facilities", data["payload"])
+        except Exception as e: 
+            logging.error(f"An error occurred during facility creation request ({data}): {e}")
 
     def _update_request(self, data):
-        self.lmis_client.send_put_request("facilities", data["id"], data["payload"])
+        try:
+            self.lmis_client.send_put_request("facilities", data["id"], data["payload"])
+        except Exception as e: 
+            logging.error(f"An error occurred during facility update request ({data}): {e}")
 
     def _delete_request(self, data):
-        self.lmis_client.send_delete_request("facilities", data["id"])
+        try:
+            self.lmis_client.send_delete_request("facilities", data["id"])
+        except Exception as e: 
+            logging.error(f"An error occurred during facility delete request ({data}): {e}")
 
     def _update_existing_facilities(self, facilities: DataFrame):
         format_payload_f = self.format_payload_f()
