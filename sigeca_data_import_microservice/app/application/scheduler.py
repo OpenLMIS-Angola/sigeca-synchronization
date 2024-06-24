@@ -25,6 +25,7 @@ class FacilitySyncScheduler:
 
     def run_sync(self):
         try:
+            self.sync_service.lmis_client.login()
             self.sync_service.synchronize_facilities()
         except Exception as e:
             logging.exception(f"Synchronization job failed. Error: {e}")
