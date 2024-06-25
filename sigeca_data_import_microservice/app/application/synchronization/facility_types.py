@@ -65,7 +65,7 @@ class FacilityTypeSynchronization(FacilitySupplementSynchronization):
         add_category_code_f = udf(lambda name: f"{unidecode.unidecode(name.lower())}")
         format_payload_f = udf(
             lambda name, code, display: json.dumps(
-                {"code": code, "name": name, "displayOrder": display}
+                {"code": code, "name": name, "displayOrder": display, "active": True}
             )
         )
         reduced_df = (

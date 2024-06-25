@@ -59,7 +59,7 @@ class ProgramSynchronization(FacilitySupplementSynchronization):
 
         format_payload_f = udf(
             lambda name, code: json.dumps(
-                {"code": code, "name": name, "description": name}
+                {"code": code, "name": name, "description": name, active: True}
             )
         )
         reduced_df = reduced_df.withColumn(
