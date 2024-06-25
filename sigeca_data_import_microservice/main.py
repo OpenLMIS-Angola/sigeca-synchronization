@@ -4,13 +4,14 @@ import logging
 import os
 
 from app.application.scheduler import FacilitySyncScheduler
-from app.application.synchronization.facilities import \
-    FacilitySynchronizationService
-from app.domain.resources import (FacilityOperatorResourceRepository,
-                                  FacilityResourceRepository,
-                                  FacilityTypeResourceRepository,
-                                  GeographicZoneResourceRepository,
-                                  ProgramResourceRepository)
+from app.application.synchronization.facilities import FacilitySynchronizationService
+from app.domain.resources import (
+    FacilityOperatorResourceRepository,
+    FacilityResourceRepository,
+    FacilityTypeResourceRepository,
+    GeographicZoneResourceRepository,
+    ProgramResourceRepository,
+)
 from app.infrastructure.database import get_engine
 from app.infrastructure.jdbc_reader import JDBCReader
 from app.infrastructure.open_lmis_api_client import OpenLmisApiClient
