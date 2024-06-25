@@ -11,7 +11,7 @@ class SyncLog(Base):
     resource = Column(String, nullable=False)
     sync_type = Column(String, nullable=True)
     operation = Column(String, nullable=False)
-    timestamp = Column(DateTime, default=datetime.utcnow)
+    timestamp = Column(DateTime, default=lambda: datetime.now(), nullable=False)
     success = Column(Boolean, nullable=False)
     message = Column(String, nullable=True)
     details = Column(String, nullable=True)

@@ -23,6 +23,11 @@
         "log_level": "INFO"
     },
     "sync": {
-        "interval_minutes": 0.2
+        "changelog_sync_cron": {
+            "minute": "*/5"
+        },
+        "full_sync_cron": {
+            "hour": "1"
+        }
     }
 }
