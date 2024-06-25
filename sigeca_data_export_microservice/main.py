@@ -1,49 +1,39 @@
 import os
 import sys
-
-from app.application.synchronizations.resources_synchronization import ChangeLogResourceSynchronization, \
-    GeoLevelResourceSynchronization, GeoZoneResourceSynchronization, LotResourceSynchronization, \
-    FacilityResourceSynchronization, OrderResourceSynchronization, OrderLineItemResourceSynchronization, \
-    OrderableResourceSynchronization, ProgramOrderableResourceSynchronization, ProofOfDeliveryResourceSynchronization, \
-    ProofOfDeliveryLineItemResourceSynchronization, RequisitionResourceSynchronization, \
-    RequisitionLineItemResourceSynchronization, StockCardResourceSynchronization, \
-    StockCardLineItemResourceSynchronization, StockEventResourceSynchronization, \
-    StockEventLineItemResourceSynchronization, CalculatedStockOnHandResourceSynchronization, \
-    SupportedProgramResourceSynchronization, UserResourceSynchronization, ProgramResourceSynchronization
-
-sys.path.append(os.path.abspath(os.path.dirname(__file__)))
-
 import argparse
 import json
 import logging
 
+from app.application.synchronizations.resources_synchronization import ChangeLogResourceSynchronization, \
+    get_full_sync_list
 from app.application import DataSyncService
 from app.application.scheduler.sigeca_data_export_scheduler import ChangesSyncScheduler
 from app.infrastructure import JDBCReader, SigecaApiClient
 from app.infrastructure.database import Base, get_engine, get_session
 
+sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
-def load_config(file_path="./config.json"):
+
+def _load_config(file_path="./config.json"):
     with open(file_path, "r") as file:
         return json.load(file)
 
 
-def _run_scheduler(session_maker, jdbc_reader, sigeca_data_export_service, sync_interval_minutes):
+def _run_scheduler(jdbc_reader, api_client, sigeca_data_export_service, sync_config):
     try:
         scheduler = ChangesSyncScheduler(
             sigeca_data_export_service,
-            session_maker,
-            sync_interval_minutes,
-            [FacilityResourceSynchronization(jdbc_reader)],
+            sync_config,
+            jdbc_reader,
+            api_client,
         )
-
         scheduler.start()
     except (KeyboardInterrupt, SystemExit):
         scheduler.stop()
 
 
 def main():
-    config = load_config()
+    config = _load_config()
 
     logging.basicConfig(level=logging.INFO)
 
@@ -57,7 +47,7 @@ def main():
     api_client = SigecaApiClient(config["sigeca_api"])
     sigeca_data_export_service = DataSyncService(session_maker)
 
-    sync_interval_minutes = config["sync"]["interval_minutes"]
+    sync_config = config.get("sync", {})
 
     parser = argparse.ArgumentParser(description="Data synchronization service")
     parser.add_argument("--run-mode", choices=["continuous", "one-time"], required=True,
@@ -65,65 +55,13 @@ def main():
     args = parser.parse_args()
 
     if args.run_mode == "continuous":
-        _run_scheduler(session_maker, jdbc_reader, sigeca_data_export_service, sync_interval_minutes)
+        _run_scheduler(jdbc_reader, api_client, sigeca_data_export_service, sync_config)
 
     elif args.run_mode == "one-time":
-        sigeca_data_export_service.sync_full(
-            FacilityResourceSynchronization(jdbc_reader, api_client)
-        )
-
-
-def main2():
-    config = load_config()
-
-    logging.basicConfig(level=logging.INFO)
-
-    engine = get_engine(config["changelog_database"])
-    session_maker = get_session(engine)
-
-    # Create the tables if they don't exist
-    Base.metadata.create_all(engine)
-
-    jdbc_reader = JDBCReader(config["jdbc_reader"])
-    api_client = SigecaApiClient(config["sigeca_api"])
-    sigeca_data_export_service = DataSyncService(session_maker)
-
-    sync_interval_minutes = config["sync"]["interval_minutes"]
-    print("---MAIN START----")
-
-    # For incremental
-    # resources = [
-    #     ChangeLogResourceSynchronization(jdbc_reader, api_client),
-    # ]
-
-    resources = [
-        GeoLevelResourceSynchronization(jdbc_reader, api_client),
-        GeoZoneResourceSynchronization(jdbc_reader, api_client), # Has to be after GeoLevel
-        FacilityResourceSynchronization(jdbc_reader, api_client),  # Has to be after GeoZone
-        LotResourceSynchronization(jdbc_reader, api_client),
-        OrderResourceSynchronization(jdbc_reader, api_client),
-        OrderLineItemResourceSynchronization(jdbc_reader, api_client),  # Has to be after Order
-        OrderableResourceSynchronization(jdbc_reader, api_client),
-        ProgramResourceSynchronization(jdbc_reader, api_client),
-        ProgramOrderableResourceSynchronization(jdbc_reader, api_client),
-        ProofOfDeliveryResourceSynchronization(jdbc_reader, api_client),
-        ProofOfDeliveryLineItemResourceSynchronization(jdbc_reader, api_client),
-        RequisitionResourceSynchronization(jdbc_reader, api_client),
-        RequisitionLineItemResourceSynchronization(jdbc_reader, api_client),
-        StockEventResourceSynchronization(jdbc_reader, api_client),
-        StockEventLineItemResourceSynchronization(jdbc_reader, api_client),  # Has to be after Stock Event
-        StockCardResourceSynchronization(jdbc_reader, api_client),  # Has to be after Stock Event
-        StockCardLineItemResourceSynchronization(jdbc_reader, api_client),  # Has to be after Stock Card
-        CalculatedStockOnHandResourceSynchronization(jdbc_reader, api_client),
-        SupportedProgramResourceSynchronization(jdbc_reader, api_client),
-        UserResourceSynchronization(jdbc_reader, api_client),
-    ]
-
-    for resource in resources:
-        sigeca_data_export_service.sync_full(resource)
-
-    print("---MAIN END----")
+        resources = get_full_sync_list(jdbc_reader, api_client)
+        for resource in resources:
+            sigeca_data_export_service.sync_full(resource)
 
 
 if __name__ == "__main__":
-    main2()
+    main()

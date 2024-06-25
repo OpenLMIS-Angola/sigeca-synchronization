@@ -1,9 +1,8 @@
 from abc import ABC, abstractmethod
-from datetime import datetime
-from typing import Optional, Type
+from typing import Type
 
 from app.domain.resources.abstract import ResourceReader
-from app.infrastructure import ChangeLogOperation, JDBCReader, SigecaApiClient
+from app.infrastructure import JDBCReader, SigecaApiClient
 import logging
 
 
@@ -26,17 +25,18 @@ class ResourceSynchronization(ABC):
         data = self.resource.get_all_data()
         self.synchronize_data(data)
 
-    def execute_change_synchronization(
-            self,
-            operation: ChangeLogOperation = None,
-            last_sync_timestamp: Optional[datetime] = None,
-    ):
-        data = self.resource.get_changelog_data(operation, last_sync_timestamp)
+    def execute_change_synchronization(self):
+        data = self.resource.get_changelog_data()
         self.synchronize_data(data)
 
     def synchronize_data(self, payload):
-        logging.info(f"Syncing {len(payload)} records for {self.get_resource_name()}")
-        self.api_client.sync(payload)
+        count = len(payload)
+
+        if count:
+            logging.info(f"Syncing {count} records for {self.get_resource_name()}")
+            self.api_client.sync(payload)
+        else:
+            logging.info(f"No records to sync for {self.get_resource_name()}")
 
     def __str__(self) -> str:
         return self.__class__.__name__

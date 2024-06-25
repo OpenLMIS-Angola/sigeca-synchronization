@@ -90,3 +90,34 @@ class SupportedProgramResourceSynchronization(ResourceSynchronization):
 
 class UserResourceSynchronization(ResourceSynchronization):
     synchronized_resource = UserResourceReader
+
+
+def get_full_sync_list(jdbc_reader, api_client):
+    return [
+        GeoLevelResourceSynchronization(jdbc_reader, api_client),
+        # Has to be after GeoLevel
+        GeoZoneResourceSynchronization(jdbc_reader, api_client),
+        # Has to be after GeoZone
+        FacilityResourceSynchronization(jdbc_reader, api_client),
+        LotResourceSynchronization(jdbc_reader, api_client),
+        OrderResourceSynchronization(jdbc_reader, api_client),
+        # Has to be after Order
+        OrderLineItemResourceSynchronization(jdbc_reader, api_client),
+        OrderableResourceSynchronization(jdbc_reader, api_client),
+        ProgramResourceSynchronization(jdbc_reader, api_client),
+        ProgramOrderableResourceSynchronization(jdbc_reader, api_client),
+        ProofOfDeliveryResourceSynchronization(jdbc_reader, api_client),
+        ProofOfDeliveryLineItemResourceSynchronization(jdbc_reader, api_client),
+        RequisitionResourceSynchronization(jdbc_reader, api_client),
+        RequisitionLineItemResourceSynchronization(jdbc_reader, api_client),
+        StockEventResourceSynchronization(jdbc_reader, api_client),
+        # Has to be after Stock Event
+        StockEventLineItemResourceSynchronization(jdbc_reader, api_client),
+        # Has to be after Stock Event
+        StockCardResourceSynchronization(jdbc_reader, api_client),
+        # Has to be after Stock Card
+        StockCardLineItemResourceSynchronization(jdbc_reader, api_client),
+        CalculatedStockOnHandResourceSynchronization(jdbc_reader, api_client),
+        SupportedProgramResourceSynchronization(jdbc_reader, api_client),
+        UserResourceSynchronization(jdbc_reader, api_client),
+    ]

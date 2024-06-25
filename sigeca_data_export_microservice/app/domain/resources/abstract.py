@@ -1,10 +1,8 @@
 from abc import ABC, abstractmethod
-from typing import Optional
 
-from app.infrastructure import ChangeLogOperation, JDBCReader
+from app.infrastructure import JDBCReader
 from pyspark.sql import DataFrame
 from pyspark.sql.types import StructType
-from datetime import datetime
 
 
 class ResourceReader(ABC):
@@ -35,14 +33,8 @@ class ResourceReader(ABC):
         transformed_data = self.transform_data(data)
         return transformed_data
 
-    def get_changelog_data(
-            self,
-            operation: ChangeLogOperation = None,
-            last_sync_timestamp: Optional[datetime] = None,
-    ) -> list[dict]:
+    def get_changelog_data(self) -> list[dict]:
         format_name = f"{self.read_schema_name()}.{self.read_table_name()}"
-        data = self.jdbc_reader.read_changes(
-            format_name, self.read_schema(), operation, last_sync_timestamp
-        )
+        data = self.jdbc_reader.read_changes(self.read_schema())
         transformed_data = self.transform_data(data)
         return transformed_data
