@@ -247,6 +247,7 @@ class FacilitySynchronizationService:
                     "type": {"id": facility_type},
                     "active": enabled,
                     "enabled": enabled,
+                    "openLmisAccessible": enabled,
                     "supportedPrograms": [
                         {"id": program_id}
                         for program_id in json.loads(supported_programs).values()
