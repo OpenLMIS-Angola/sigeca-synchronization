@@ -2,7 +2,16 @@ import logging
 from pyspark.sql import DataFrame
 from pyspark.sql import SparkSession
 import uuid
-from pyspark.sql.functions import col, udf, from_json, when, array_except, concat, size, lit
+from pyspark.sql.functions import (
+    col,
+    udf,
+    from_json,
+    when,
+    array_except,
+    concat,
+    size,
+    lit,
+)
 from app.domain.resources import (
     FacilityResourceRepository,
     GeographicZoneResourceRepository,
@@ -200,7 +209,9 @@ class FacilitySynchronizationService:
         ).synchronize()
 
     def _split_df(self, df):
-        deleted = df.filter(col("facilities.is_deleted") == True)
+        deleted = df.filter(col("facilities.is_deleted") == True).filter(
+            col("existing_facilities.id").isNotNull()
+        )
         existing = df.filter(col("facilities.is_deleted") == False)
 
         new_facilities = existing.filter(col("existing_facilities.id").isNull())
@@ -218,6 +229,7 @@ class FacilitySynchronizationService:
                 col("municipality.id"),
                 col("facility_type.id"),
                 col("code_id_dict"),
+                lit(True),
             ),
         )
 
@@ -226,15 +238,15 @@ class FacilitySynchronizationService:
 
     def format_payload_f(self):
         format_payload_f = udf(
-            lambda id, name, code, geographic_zone, facility_type, supported_programs: json.dumps(
+            lambda id, name, code, geographic_zone, facility_type, supported_programs, enabled: json.dumps(
                 {
                     "id": id,
                     "code": code,
                     "name": name,
                     "geographicZone": {"id": geographic_zone},
                     "type": {"id": facility_type},
-                    "active": True,
-                    "enabled": True,
+                    "active": enabled,
+                    "enabled": enabled,
                     "supportedPrograms": [
                         {"id": program_id}
                         for program_id in json.loads(supported_programs).values()
@@ -248,23 +260,47 @@ class FacilitySynchronizationService:
     def _create_request(self, data):
         try:
             self.lmis_client.send_post_request("facilities", data["payload"])
-        except Exception as e: 
-            logging.error(f"An error occurred during facility creation request ({data}): {e}")
+        except Exception as e:
+            logging.error(
+                f"An error occurred during facility creation request ({data}): {e}"
+            )
 
     def _update_request(self, data):
         try:
             self.lmis_client.send_put_request("facilities", data["id"], data["payload"])
-        except Exception as e: 
-            logging.error(f"An error occurred during facility update request ({data}): {e}")
+        except Exception as e:
+            logging.error(
+                f"An error occurred during facility update request ({data}): {e}"
+            )
 
     def _delete_request(self, data):
         try:
             self.lmis_client.send_delete_request("facilities", data["id"])
-        except Exception as e: 
-            logging.error(f"An error occurred during facility delete request ({data}): {e}")
+        except Exception as e:
+            logging.error(
+                f"An error occurred during facility delete request ({data}): {e}"
+            )
 
-    def _update_existing_facilities(self, facilities: DataFrame):
+    def merge_json_f(self):
+        def _inner_merge(json1, json2):
+            dict1 = json.loads(json1)
+            dict2 = json.loads(json2)
+            merged_dict = {**dict2, **dict1}
+            return json.dumps(merged_dict)
+
+        return udf(_inner_merge, StringType())
+
+    def _update_existing_facilities(self, facilities: DataFrame, is_deleted=False):
+        merge_json_udf = self.merge_json_f()
+        facilities = facilities.withColumn(
+            "mergedServices",
+            merge_json_udf(
+                col("existing_facilities.supported_programs"), col("code_id_dict")
+            ),
+        )
+
         format_payload_f = self.format_payload_f()
+
         facilities = facilities.withColumn(
             "payload",
             format_payload_f(
@@ -273,7 +309,8 @@ class FacilitySynchronizationService:
                 col(f"facilities.code"),
                 col("municipality.id"),
                 col("facility_type.id"),
-                col("code_id_dict"),
+                col("mergedServices"),
+                lit(not is_deleted),
             ),
         )
 
@@ -286,6 +323,7 @@ class FacilitySynchronizationService:
                 col("existing_facilities.geographiczoneid"),
                 col("existing_facilities.typeid"),
                 col("existing_facilities.supported_programs"),
+                col("existing_facilities.enabled"),
             ),
         )
 
@@ -334,8 +372,9 @@ class FacilitySynchronizationService:
                     .alias("any_change")
                 )
             else:
-                change_column = lit(False).alias("any_change")  # Handle the case when changes list is empty
-
+                change_column = lit(False).alias(
+                    "any_change"
+                )  # Handle the case when changes list is empty
 
             # Select the original JSON payloads and the any_change flag
             return df.select(
@@ -351,7 +390,5 @@ class FacilitySynchronizationService:
             self._update_request(row)
 
     def _delete_removed_facilities(self, facilities):
-        df = facilities[["existing_facilities.id"]]
-        for row in df.collect():
-            if row["id"]:
-                self._delete_request(row)
+        # Delete doesn't remove the facility, it set's it to disaled and unactive
+        self._update_existing_facilities(facilities, True)
