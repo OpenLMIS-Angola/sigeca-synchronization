@@ -35,11 +35,13 @@ class ChangesSyncScheduler:
     def start(self):
         logging.info("Starting scheduler")
         self.scheduler.add_job(
-            self._sync_changelog, "cron", **self.config.get("changelog_sync_cron", default_changelog_sync_cron)
+            self._sync_changelog, "cron", id='changelog_sync',
+            **self.config.get("changelog_sync_cron", default_changelog_sync_cron)
         )
         self.scheduler.add_job(
-            self._sync_full, "cron", **self.config.get("full_sync_cron", default_full_sync_cron)
+            self._sync_full, "cron", id='full_sync', **self.config.get("full_sync_cron", default_full_sync_cron)
         )
+        self._sync_full()
         self.scheduler.start()
 
     def stop(self):
