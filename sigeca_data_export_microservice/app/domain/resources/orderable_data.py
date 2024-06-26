@@ -1,7 +1,5 @@
 from datetime import datetime
 from uuid import uuid4
-from pyspark.sql.types import StructType, StructField, StringType, BooleanType, LongType, TimestampType, \
-    DoubleType
 
 from app.domain.resources.abstract import ResourceReader
 from app.domain.resources.util import table_map, schema_map, map_data
@@ -18,30 +16,6 @@ class OrderableResourceReader(ResourceReader):
     @classmethod
     def read_schema_name(cls):
         return "referencedata"
-
-    def read_schema(self):
-        return StructType(
-            [
-                StructField("id", StringType(), True),
-                StructField("fullproductname", StringType(), True),
-                StructField("packroundingthreshold", LongType(), True),
-                StructField("netcontent", LongType(), True),
-                StructField("code", StringType(), True),
-                StructField("roundtozero", BooleanType(), True),
-                StructField("description", StringType(), True),
-                StructField("extradata", StringType(), True),
-                StructField("dispensableid", StringType(), True),
-                StructField("versionnumber", LongType(), True),
-                StructField("lastupdated", TimestampType(), True),
-                StructField("minimumtemperaturevalue", DoubleType(), True),
-                StructField("minimumtemperaturecode", StringType(), True),
-                StructField("maximumtemperaturevalue", DoubleType(), True),
-                StructField("maximumtemperaturecode", StringType(), True),
-                StructField("inboxcubedimensionvalue", DoubleType(), True),
-                StructField("inboxcubedimensioncode", StringType(), True),
-                StructField("quarantined", BooleanType(), True)
-            ]
-        )
 
     def transform_data(self, df):
         schema_name = self.read_schema_name()

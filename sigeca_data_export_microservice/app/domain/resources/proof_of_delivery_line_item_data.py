@@ -1,6 +1,5 @@
 from datetime import datetime
 from uuid import uuid4
-from pyspark.sql.types import StructType, StructField, StringType, BooleanType, IntegerType, LongType
 
 from .abstract import ResourceReader
 from .util import schema_map, table_map, map_data
@@ -15,23 +14,6 @@ class ProofOfDeliveryLineItemResourceReader(ResourceReader):
     @classmethod
     def read_schema_name(cls):
         return "fulfillment"
-
-    def read_schema(self):
-        return StructType(
-            [
-                StructField("id", StringType(), True),
-                StructField("proofofdeliveryid", StringType(), True),
-                StructField("notes", StringType(), True),
-                StructField("quantityaccepted", IntegerType(), True),
-                StructField("quantityrejected", IntegerType(), True),
-                StructField("orderableid", StringType(), True),
-                StructField("lotid", StringType(), True),
-                StructField("vvmstatus", StringType(), True),
-                StructField("usevvm", BooleanType(), True),
-                StructField("rejectionreasonid", StringType(), True),
-                StructField("orderableversionnumber", LongType(), True)
-            ]
-        )
 
     def transform_data(self, df):
         schema_name = self.read_schema_name()

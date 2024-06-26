@@ -2,7 +2,6 @@ from datetime import datetime
 from uuid import uuid4
 
 from pyspark.sql.functions import col
-from pyspark.sql.types import StructType, StructField, StringType, BooleanType, IntegerType, DecimalType, LongType
 
 from app.domain.resources.abstract import ResourceReader
 from app.domain.resources.util import table_map, schema_map, map_data
@@ -19,22 +18,6 @@ class ProgramOrderableResourceReader(ResourceReader):
     @classmethod
     def read_schema_name(cls):
         return "referencedata"
-
-    def read_schema(self):
-        return StructType(
-            [
-                StructField("id", StringType(), True),
-                StructField("active", BooleanType(), True),
-                StructField("displayorder", IntegerType(), True),
-                StructField("dosesperpatient", IntegerType(), True),
-                StructField("fullsupply", BooleanType(), True),
-                StructField("priceperpack", DecimalType(19, 2), True),
-                StructField("orderabledisplaycategoryid", StringType(), True),
-                StructField("orderableid", StringType(), True),
-                StructField("programid", StringType(), True),
-                StructField("orderableversionnumber", LongType(), True)
-            ]
-        )
 
     def transform_data(self, df):
         df = df.withColumn("priceperpack", col("priceperpack").cast("string"))

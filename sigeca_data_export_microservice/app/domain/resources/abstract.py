@@ -2,7 +2,6 @@ from abc import ABC, abstractmethod
 
 from app.infrastructure import JDBCReader
 from pyspark.sql import DataFrame
-from pyspark.sql.types import StructType
 
 
 class ResourceReader(ABC):
@@ -20,21 +19,17 @@ class ResourceReader(ABC):
         pass
 
     @abstractmethod
-    def read_schema(self) -> StructType:
-        pass
-
-    @abstractmethod
     def transform_data(self, df: DataFrame) -> list[dict]:
         pass
 
     def get_all_data(self) -> list[dict]:
         format_name = f"{self.read_schema_name()}.{self.read_table_name()}"
-        data = self.jdbc_reader.read_data(format_name, self.read_schema())
+        data = self.jdbc_reader.read_data(format_name)
         transformed_data = self.transform_data(data)
         return transformed_data
 
     def get_changelog_data(self) -> list[dict]:
         format_name = f"{self.read_schema_name()}.{self.read_table_name()}"
-        data = self.jdbc_reader.read_changes(self.read_schema())
+        data = self.jdbc_reader.read_changes()
         transformed_data = self.transform_data(data)
         return transformed_data

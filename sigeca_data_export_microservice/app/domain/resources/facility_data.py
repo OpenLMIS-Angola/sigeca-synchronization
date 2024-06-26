@@ -1,6 +1,5 @@
 from datetime import datetime
 from uuid import uuid4
-from pyspark.sql.types import StructType, StructField, StringType, BooleanType, DateType
 
 from .abstract import ResourceReader
 from .util import schema_map, table_map, map_data
@@ -15,27 +14,6 @@ class FacilityResourceReader(ResourceReader):
     @classmethod
     def read_schema_name(cls):
         return "referencedata"
-
-    def read_schema(self):
-        return StructType(
-            [
-                StructField("id", StringType(), True),
-                StructField("active", BooleanType(), True),
-                StructField("code", StringType(), True),
-                StructField("comment", StringType(), True),
-                StructField("description", StringType(), True),
-                StructField("enabled", BooleanType(), True),
-                StructField("godowndate", DateType(), True),
-                StructField("golivedate", DateType(), True),
-                StructField("name", StringType(), True),
-                StructField("openlmisaccessible", BooleanType(), True),
-                StructField("geographiczoneid", StringType(), True),
-                StructField("operatedbyid", StringType(), True),
-                StructField("typeid", StringType(), True),
-                StructField("extradata", StringType(), True),
-                StructField("location", StringType(), True)
-            ]
-        )
 
     def transform_data(self, df):
         schema_name = self.read_schema_name()

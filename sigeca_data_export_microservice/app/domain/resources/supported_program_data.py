@@ -1,6 +1,5 @@
 from datetime import datetime
 from uuid import uuid4
-from pyspark.sql.types import StructType, StructField, StringType, DateType, BooleanType
 
 from .abstract import ResourceReader
 from .util import schema_map, table_map, map_data
@@ -15,17 +14,6 @@ class SupportedProgramResourceReader(ResourceReader):
     @classmethod
     def read_schema_name(cls):
         return "referencedata"
-
-    def read_schema(self):
-        return StructType(
-            [
-                StructField("active", BooleanType(), True),
-                StructField("startdate", DateType(), True),
-                StructField("facilityid", StringType(), True),
-                StructField("programid", StringType(), True),
-                StructField("locallyfulfilled", BooleanType(), True)
-            ]
-        )
 
     def transform_data(self, df):
         df = df.withColumn("startdate", df["startdate"].cast('string'))

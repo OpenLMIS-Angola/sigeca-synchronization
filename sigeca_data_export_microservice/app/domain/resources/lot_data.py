@@ -2,7 +2,6 @@ from datetime import datetime
 from uuid import uuid4
 
 from pyspark.sql.functions import col
-from pyspark.sql.types import StructType, StructField, StringType, DateType, BooleanType
 
 from .abstract import ResourceReader
 from .util import schema_map, table_map, map_data
@@ -17,19 +16,6 @@ class LotResourceReader(ResourceReader):
     @classmethod
     def read_schema_name(cls):
         return "referencedata"
-
-    def read_schema(self):
-        return StructType(
-            [
-                StructField("id", StringType(), True),
-                StructField("lotcode", StringType(), True),
-                StructField("expirationdate", DateType(), True),
-                StructField("manufacturedate", DateType(), True),
-                StructField("tradeitemid", StringType(), True),
-                StructField("active", BooleanType(), True),
-                StructField("quarantined", BooleanType(), True)
-            ]
-        )
 
     def transform_data(self, df):
         df = df.withColumn("expirationdate", col("expirationdate").cast("string")) \
