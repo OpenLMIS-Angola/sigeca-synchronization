@@ -4,13 +4,12 @@ import argparse
 import json
 import logging
 
-from app.application.synchronizations.resources_synchronization import ChangeLogResourceSynchronization, \
-    get_full_sync_list
+from app.application.synchronizations.resources_synchronization import get_full_sync_list
 from app.application import DataSyncService
 from app.application.scheduler.sigeca_data_export_scheduler import ChangesSyncScheduler
 from app.infrastructure import JDBCReader, SigecaApiClient
 from app.infrastructure.database import Base, get_engine, get_session
-from dotenv import dotenv_values, load_dotenv
+from dotenv import load_dotenv
 
 sys.path.append(os.path.abspath(os.path.dirname(__file__)))
 
@@ -26,6 +25,7 @@ def _load_config(from_env=False):
         with open("config.json", "r") as config_file:
             config = json.load(config_file)
             return config
+
 
 def _run_scheduler(jdbc_reader, api_client, sigeca_data_export_service, sync_config):
     try:
@@ -47,7 +47,7 @@ def main():
 
     parser.add_argument("--env-config", required=False, action="store_true",
                         help="Env Config: use stringified config comming form env instead of .json file")
-    
+
     args = parser.parse_args()
 
     config = _load_config(args.env_config)
@@ -73,6 +73,7 @@ def main():
         resources = get_full_sync_list(jdbc_reader, api_client)
         for resource in resources:
             sigeca_data_export_service.sync_full(resource)
+        sigeca_data_export_service.clear_logs()
 
 
 if __name__ == "__main__":
