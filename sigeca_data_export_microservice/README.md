@@ -71,7 +71,12 @@ Create the `config.json` file with your specific settings. It can be created bas
         "log_level": "INFO"                                       // Log level for JDBC operations (e.g., INFO, DEBUG)
     },
     "sync": {
-        "interval_minutes": 0.2   // Synchronization interval in minutes (0.2 minutes = 12 seconds for quick testing)
+        "changelog_sync_cron": { // Cron expression for the scheduled task to synchronize changelog data
+            "minute": "*/5"      // Run every 5 minutes
+        },
+        "full_sync_cron": {      // Cron expression for the scheduled task to perform a full synchronization
+            "hour": "1"          // Run at 1:00 AM
+        }
     }
 }
 ```

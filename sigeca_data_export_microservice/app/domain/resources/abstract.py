@@ -1,17 +1,8 @@
-import json
-import pprint
 from abc import ABC, abstractmethod
-from typing import Any, Callable, Optional, Type
 
-import requests
-from app.infrastructure import ChangeLogOperationEnum, JDBCReader
-from pyspark.sql import DataFrame, SparkSession
-from pyspark.sql.functions import col, current_date, expr, lit
-from pyspark.sql.types import BooleanType, DateType
-from pyspark.sql.types import StringType
-from pyspark.sql.types import StringType as UUIDType
-from pyspark.sql.types import StructField, StructType
-from datetime import datetime
+from app.infrastructure import JDBCReader
+from pyspark.sql import DataFrame
+from pyspark.sql.types import StructType
 
 
 class ResourceReader(ABC):
@@ -20,12 +11,12 @@ class ResourceReader(ABC):
 
     @classmethod
     @abstractmethod
-    def read_schema_name(cls) -> StructType:
+    def read_schema_name(cls) -> str:
         pass
 
     @classmethod
     @abstractmethod
-    def read_table_name(cls) -> StructType:
+    def read_table_name(cls) -> str:
         pass
 
     @abstractmethod
@@ -33,23 +24,17 @@ class ResourceReader(ABC):
         pass
 
     @abstractmethod
-    def transform_data(self, df: DataFrame) -> DataFrame:
+    def transform_data(self, df: DataFrame) -> list[dict]:
         pass
 
-    def get_all_data(self) -> DataFrame:
+    def get_all_data(self) -> list[dict]:
         format_name = f"{self.read_schema_name()}.{self.read_table_name()}"
         data = self.jdbc_reader.read_data(format_name, self.read_schema())
         transformed_data = self.transform_data(data)
         return transformed_data
 
-    def get_changelog_data(
-        self,
-        operation: ChangeLogOperationEnum = None,
-        last_sync_timestamp: Optional[datetime] = None,
-    ) -> DataFrame:
+    def get_changelog_data(self) -> list[dict]:
         format_name = f"{self.read_schema_name()}.{self.read_table_name()}"
-        data = self.jdbc_reader.read_changes(
-            format_name, self.read_schema(), operation, last_sync_timestamp
-        )
+        data = self.jdbc_reader.read_changes(self.read_schema())
         transformed_data = self.transform_data(data)
         return transformed_data

@@ -1,1 +1,1 @@
-from .sigeca_data_export_service import DataSyncService
+from app.application.services.sigeca_data_export_service import DataSyncService
