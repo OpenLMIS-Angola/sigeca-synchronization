@@ -1,6 +1,5 @@
 import json
 from uuid import uuid4
-from pyspark.sql.types import TimestampType, IntegerType, StructType, StructField, StringType
 
 from .abstract import ResourceReader
 from app.domain.resources.util import schema_map, table_map, map_data
@@ -14,18 +13,6 @@ class ChangeLogResourceReader(ResourceReader):
     @classmethod
     def read_schema_name(cls):
         return "changelog"
-
-    def read_schema(self):
-        return StructType(
-            [
-                StructField("id", IntegerType(), True),
-                StructField("schema_name", StringType(), True),
-                StructField("table_name", StringType(), True),
-                StructField("operation", StringType(), True),
-                StructField("change_time", TimestampType(), True),
-                StructField("row_data", StringType(), True),
-            ]
-        )
 
     def transform_data(self, df):
         return df.rdd.map(self._to_payload()).collect()

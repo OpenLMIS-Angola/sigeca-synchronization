@@ -1,6 +1,5 @@
 from datetime import datetime
 from uuid import uuid4
-from pyspark.sql.types import StructType, StructField, StringType, BooleanType
 
 from .abstract import ResourceReader
 from .util import schema_map, table_map, map_data
@@ -15,21 +14,6 @@ class StockCardResourceReader(ResourceReader):
     @classmethod
     def read_schema_name(cls):
         return "stockmanagement"
-
-    def read_schema(self):
-        return StructType(
-            [
-                StructField("id", StringType(), True),
-                StructField("facilityid", StringType(), True),
-                StructField("lotid", StringType(), True),
-                StructField("orderableid", StringType(), True),
-                StructField("programid", StringType(), True),
-                StructField("origineventid", StringType(), True),
-                StructField("isshowed", BooleanType(), True),
-                StructField("isactive", BooleanType(), True),
-                StructField("unitoforderableid", StringType(), True)
-            ]
-        )
 
     def transform_data(self, df):
         schema_name = self.read_schema_name()

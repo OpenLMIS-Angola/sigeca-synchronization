@@ -1,6 +1,5 @@
 from datetime import datetime
 from uuid import uuid4
-from pyspark.sql.types import StructType, StructField, StringType, DateType, TimestampType, IntegerType
 
 from .abstract import ResourceReader
 from .util import schema_map, table_map, map_data
@@ -15,29 +14,6 @@ class StockCardLineItemResourceReader(ResourceReader):
     @classmethod
     def read_schema_name(cls):
         return "stockmanagement"
-
-    def read_schema(self):
-        return StructType(
-            [
-                StructField("id", StringType(), True),
-                StructField("destinationfreetext", StringType(), True),
-                StructField("documentnumber", StringType(), True),
-                StructField("occurreddate", DateType(), True),
-                StructField("processeddate", TimestampType(), True),
-                StructField("quantity", IntegerType(), True),
-                StructField("reasonfreetext", StringType(), True),
-                StructField("signature", StringType(), True),
-                StructField("sourcefreetext", StringType(), True),
-                StructField("userid", StringType(), True),
-                StructField("destinationid", StringType(), True),
-                StructField("origineventid", StringType(), True),
-                StructField("reasonid", StringType(), True),
-                StructField("sourceid", StringType(), True),
-                StructField("stockcardid", StringType(), True),
-                StructField("extradata", StringType(), True),
-                StructField("unitoforderableid", StringType(), True)
-            ]
-        )
 
     def transform_data(self, df):
         df = df.withColumn("occurreddate", df["occurreddate"].cast('string')) \

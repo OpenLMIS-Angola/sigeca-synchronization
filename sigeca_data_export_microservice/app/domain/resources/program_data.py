@@ -1,6 +1,5 @@
 from datetime import datetime
 from uuid import uuid4
-from pyspark.sql.types import StructType, StructField, StringType, BooleanType
 
 from app.domain.resources.abstract import ResourceReader
 from app.domain.resources.util import table_map, schema_map, map_data
@@ -17,21 +16,6 @@ class ProgramResourceReader(ResourceReader):
     @classmethod
     def read_schema_name(cls):
         return "referencedata"
-
-    def read_schema(self):
-        return StructType(
-            [
-                StructField("id", StringType(), True),
-                StructField("active", BooleanType(), True),
-                StructField("code", StringType(), True),
-                StructField("description", StringType(), True),
-                StructField("name", StringType(), True),
-                StructField("periodsskippable", BooleanType(), True),
-                StructField("shownonfullsupplytab", BooleanType(), True),
-                StructField("enabledatephysicalstockcountcompleted", BooleanType(), True),
-                StructField("skipauthorization", BooleanType(), True),
-            ]
-        )
 
     def transform_data(self, df):
         schema_name = self.read_schema_name()

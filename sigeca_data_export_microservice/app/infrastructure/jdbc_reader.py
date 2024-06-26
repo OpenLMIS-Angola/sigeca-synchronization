@@ -1,10 +1,7 @@
 from pyspark.sql import SparkSession
 from pyspark.sql.types import StructType
-from typing import Any, Optional
+from typing import Any
 from pyspark.sql import DataFrame
-from pyspark.sql.functions import from_json, col
-from datetime import datetime
-import re
 
 query = f"""
 (
@@ -47,15 +44,13 @@ class JDBCReader:
         )
         self.spark.sparkContext.setLogLevel(config.get('log_level', 'WARN'))
 
-    def read_data(self, table_name: str, schema: StructType) -> DataFrame:
+    def read_data(self, table_name: str) -> DataFrame:
         """
         Reads data from a specified table in the database and returns it as a Spark DataFrame.
 
         Args:
             table_name (str): The name of the table to read data from.
                               If the table is in a schema other than public, it has to be specified as schema.table.
-            schema (StructType): The schema of the table to enforce during read.
-
         Returns:
             DataFrame: A Spark DataFrame containing the data from the specified table.
         """
@@ -66,11 +61,10 @@ class JDBCReader:
             .option("user", self.config["jdbc_user"])
             .option("password", self.config["jdbc_password"])
             .option("driver", self.config["jdbc_driver"])
-            .schema(schema)
             .load()
         )
 
-    def read_changes(self, schema: StructType) -> DataFrame:
+    def read_changes(self) -> DataFrame:
         """
         Reads changes based on the last synchronization timestamp and parses the JSONB column.
 
@@ -88,6 +82,5 @@ class JDBCReader:
             .option("user", self.config["jdbc_user"])
             .option("password", self.config["jdbc_password"])
             .option("driver", self.config["jdbc_driver"])
-            .schema(schema)
             .load()
         )

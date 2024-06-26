@@ -1,6 +1,5 @@
 from datetime import datetime
 from uuid import uuid4
-from pyspark.sql.types import StructType, StructField, StringType, LongType
 
 from .abstract import ResourceReader
 from .util import schema_map, table_map, map_data
@@ -15,18 +14,6 @@ class OrderLineItemResourceReader(ResourceReader):
     @classmethod
     def read_schema_name(cls):
         return "fulfillment"
-
-    def read_schema(self):
-        return StructType(
-            [
-                StructField("id", StringType(), True),
-                StructField("orderid", StringType(), True),
-                StructField("orderableid", StringType(), True),
-                StructField("orderedquantity", LongType(), True),
-                StructField("orderableversionnumber", LongType(), True),
-                StructField("extradata", StringType(), True)
-            ]
-        )
 
     def transform_data(self, df):
         schema_name = self.read_schema_name()
