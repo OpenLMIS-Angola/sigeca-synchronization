@@ -7,6 +7,7 @@ from .lot_data import LotResourceReader
 from .order_data import OrderResourceReader
 from .order_line_item_data import OrderLineItemResourceReader
 from .orderable_data import OrderableResourceReader
+from .price_changes_data import PriceChangesResourceReader
 from .program_data import ProgramResourceReader
 from .program_orderable_data import ProgramOrderableResourceReader
 from .proof_of_delivery_data import ProofOfDeliveryResourceReader

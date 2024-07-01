@@ -5,7 +5,7 @@ from app.domain.resources import ChangeLogResourceReader, FacilityResourceReader
     ProofOfDeliveryLineItemResourceReader, RequisitionResourceReader, RequisitionLineItemResourceReader, \
     StockCardResourceReader, StockCardLineItemResourceReader, StockEventResourceReader, \
     StockEventLineItemResourceReader, CalculatedStockOnHandResourceReader, SupportedProgramResourceReader, \
-    UserResourceReader
+    UserResourceReader, PriceChangesResourceReader
 
 
 class ChangeLogResourceSynchronization(ResourceSynchronization):
@@ -38,6 +38,10 @@ class OrderableResourceSynchronization(ResourceSynchronization):
 
 class FacilityResourceSynchronization(ResourceSynchronization):
     synchronized_resource = FacilityResourceReader
+
+
+class PriceChangesResourceSynchronization(ResourceSynchronization):
+    synchronized_resource = PriceChangesResourceReader
 
 
 class ProgramResourceSynchronization(ResourceSynchronization):
@@ -106,6 +110,8 @@ def get_full_sync_list(jdbc_reader, api_client):
         OrderableResourceSynchronization(jdbc_reader, api_client),
         ProgramResourceSynchronization(jdbc_reader, api_client),
         ProgramOrderableResourceSynchronization(jdbc_reader, api_client),
+        # Has to be after ProgramOrderable
+        PriceChangesResourceSynchronization(jdbc_reader, api_client),
         ProofOfDeliveryResourceSynchronization(jdbc_reader, api_client),
         ProofOfDeliveryLineItemResourceSynchronization(jdbc_reader, api_client),
         RequisitionResourceSynchronization(jdbc_reader, api_client),

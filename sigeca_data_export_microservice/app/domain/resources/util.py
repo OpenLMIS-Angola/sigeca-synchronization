@@ -6,6 +6,7 @@ schema_map = {
     ("fulfillment", "orders"): "",
     ("fulfillment", "order_line_items"): "",
     ("referencedata", "orderables"): "",
+    ("referencedata", "price_changes"): "",
     ("referencedata", "programs"): "",
     ("referencedata", "program_orderables"): "",
     ("fulfillment", "proofs_of_delivery"): "",
@@ -29,6 +30,7 @@ table_map = {
     ("fulfillment", "orders"): "order",
     ("fulfillment", "order_line_items"): "order_line",
     ("referencedata", "orderables"): "product",
+    ("referencedata", "price_changes"): "price_changes",
     ("referencedata", "programs"): "program",
     ("referencedata", "program_orderables"): "program_product",
     ("fulfillment", "proofs_of_delivery"): "proof_of_delivery",
@@ -110,6 +112,13 @@ row_data_map = {
         "pack_rounding_threshold": "packroundingthreshold",
         "net_content": "netcontent",
         "round_to_zero": "roundtozero",
+    },
+    ("referencedata", "price_changes"): {
+        "id": "id",
+        "program_product_id": "programorderableid",
+        "price": "price",
+        "author_id": "authorid",
+        "occurred_date": "occurreddate"
     },
     ("referencedata", "programs"): {
         "id": "id",
