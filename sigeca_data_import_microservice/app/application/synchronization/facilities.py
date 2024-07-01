@@ -180,7 +180,7 @@ class FacilitySynchronizationService:
         add_info = udf(
             lambda supported_programs: json.dumps(
                 {
-                    entry["code"]: code_id_dict.get(entry["code"], None)
+                    entry["code"]: {"id": code_id_dict.get(entry["code"], None)}
                     for entry in supported_programs
                     if entry["code"] in code_id_dict
                 }
@@ -249,8 +249,14 @@ class FacilitySynchronizationService:
                     "enabled": enabled,
                     "openLmisAccessible": enabled,
                     "supportedPrograms": [
-                        {"id": program_id}
-                        for program_id in json.loads(supported_programs).values()
+                        {
+                            "id": data['id'],
+                            "supportActive": data.get('supportActive', True),
+                            "supportLocallyFulfilled": data.get('supportLocallyFulfilled', False),
+                            "supportStartDate": data.get("supportStartDate")
+                        
+                        }
+                        for data in json.loads(supported_programs).values() if 'id' in data.keys()
                     ],
                 }
             )
@@ -387,6 +393,7 @@ class FacilitySynchronizationService:
         result_df = result_df.filter(col("any_change") == True)[
             ["payload", "existing_facilities.id"]
         ]
+
         for row in result_df.collect():
             self._update_request(row)
 

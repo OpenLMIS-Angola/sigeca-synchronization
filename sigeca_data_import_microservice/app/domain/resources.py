@@ -13,9 +13,18 @@ class BaseResourceRepository:
 class FacilityResourceRepository(BaseResourceRepository):
     def get_all(self):
         query = """(SELECT f.*, 
-            (case when count(p.code)= 0 then '{}'::jsonb
-            else jsonb_object_agg(coalesce(p.code, 'undefined'), p.id)
-            end) as supported_programs
+            (CASE 
+                WHEN count(p.code) = 0 THEN '{}'::jsonb
+                ELSE jsonb_object_agg(
+                        coalesce(p.code, 'undefined'), 
+                        jsonb_build_object(
+                            'id', p.id,
+                            'supportActive', sp.active,
+                            'supportLocallyFulfilled', sp.locallyfulfilled,
+                            'supportStartDate', sp.startdate
+                        )
+                    )
+            END) AS supported_programs
             FROM referencedata.facilities f
             LEFT JOIN referencedata.supported_programs sp ON sp.facilityid = f.id
             LEFT JOIN referencedata.programs p ON sp.programid = p.id

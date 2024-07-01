@@ -5,6 +5,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+
 class JDBCReader:
     def __init__(self, config: Any):
         """
@@ -45,7 +46,9 @@ class JDBCReader:
             local_bind_address=("127.0.0.1", self.config.get("local_bind_port", 5432)),
         )
         self.tunnel.start()
-        logger.info(f"SSH Tunnel established on local port {self.tunnel.local_bind_port}")
+        logger.info(
+            f"SSH Tunnel established on local port {self.tunnel.local_bind_port}"
+        )
 
     def close_ssh_tunnel(self):
         if self.tunnel:
@@ -65,7 +68,7 @@ class JDBCReader:
             )
         else:
             local_jdbc_url = self.config["jdbc_url"]
-            
+
         data_frame = (
             self.spark.read.format("jdbc")
             .option("url", local_jdbc_url)
