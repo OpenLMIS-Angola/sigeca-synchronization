@@ -234,7 +234,7 @@ class FacilitySynchronizationService:
                 col(f"facilities.code"),
                 col("municipality.id"),
                 col("facility_type.id"),
-                lit({}),
+                lit('{}'),
                 col("is_operational"),
                 lit(True)
             ),
@@ -382,7 +382,7 @@ class FacilitySynchronizationService:
 
             # Select the original JSON payloads and the any_change flag
             return df.select(
-                "payload", "existing_facilities.id", "oldPayload", change_column, *changes2
+                "payload", "existing_facilities.id", "oldPayload", change_column
             )
 
 

@@ -12,7 +12,8 @@ class BaseResourceRepository:
 
 class FacilityResourceRepository(BaseResourceRepository):
     def get_all(self):
-        query = """(SELECT f.*, 
+        # Geo zone parent is taken because by API endpoint assigns the geo location to ward
+        query = """(SELECT f.id, f.name,f.code,f.active,f.enabled,f.typeid,gz2.id as"geographiczoneid",
             (CASE 
                 WHEN count(p.code) = 0 THEN '{}'::jsonb
                 ELSE jsonb_object_agg(
@@ -28,7 +29,9 @@ class FacilityResourceRepository(BaseResourceRepository):
             FROM referencedata.facilities f
             LEFT JOIN referencedata.supported_programs sp ON sp.facilityid = f.id
             LEFT JOIN referencedata.programs p ON sp.programid = p.id
-            GROUP BY f.id
+            LEFT JOIN referencedata.geographic_zones gz ON gz.id = f.geographiczoneid
+            LEFT JOIN referencedata.geographic_zones gz2 ON gz2.id = gz.parentid
+            GROUP BY f.id, gz2.id
             ) AS facilities"""
         return self.jdbc_reader.read_data(query)
 
