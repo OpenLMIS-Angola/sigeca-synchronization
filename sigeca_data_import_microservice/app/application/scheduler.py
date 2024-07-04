@@ -1,4 +1,4 @@
-from .synchronization.facilities import FacilitySynchronizationService
+from .synchronization.facilities.synchronization import FacilitySynchronizationService
 import logging
 from apscheduler.schedulers.background import BlockingScheduler
 
