@@ -14,6 +14,7 @@ from app.domain.resources import (
 )
 from app.infrastructure.database import get_engine
 from app.infrastructure.jdbc_reader import JDBCReader
+from app.infrastructure.smtp_client import SMTPClient
 from app.infrastructure.open_lmis_api_client import OpenLmisApiClient
 from app.infrastructure.sigeca_api_client import SigecaApiClient
 from dotenv import dotenv_values, load_dotenv
@@ -65,6 +66,7 @@ if __name__ == "__main__":
     lmis_client = OpenLmisApiClient(config["open_lmis_api"])
     sigeca_client = SigecaApiClient(config["sigeca_api"])
     jdbc_reader = JDBCReader(config["jdbc_reader"])
+    smtp_client = SMTPClient(**config["smtp"])
 
     sync_service = FacilitySynchronizationService(
         jdbc_reader,
