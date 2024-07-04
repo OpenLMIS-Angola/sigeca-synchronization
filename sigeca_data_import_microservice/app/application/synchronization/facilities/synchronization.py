@@ -9,6 +9,7 @@ from app.application.synchronization.facilities import (
     FacilitySupplementSync,
     FacilityDataTransformer,
 )
+from app.config import Config
 from app.domain.resources import (
     FacilityResourceRepository,
     GeographicZoneResourceRepository,
@@ -19,7 +20,9 @@ from app.domain.resources import (
 from app.infrastructure.jdbc_reader import JDBCReader
 from app.infrastructure.open_lmis_api_client import OpenLmisApiClient
 from app.infrastructure.sigeca_api_client import SigecaApiClient
-from .data_transformator import FacilityDataTransformer, get_format_payload_f
+from .data_changes_detection import compare_json_content
+from .data_transformator import FacilityDataTransformer, get_format_payload_f, get_email_response_f
+from ...email_notification import notify_administrator
 
 
 class FacilitySynchronizationService:
@@ -57,6 +60,8 @@ class FacilitySynchronizationService:
             self.program_repo,
         )
 
+        self.config = Config()
+
     def synchronize_facilities(self):
         try:
             # Step 1: Fetch data from the external API
@@ -78,14 +83,18 @@ class FacilitySynchronizationService:
 
             create, update, delete = self._split_df(joined)
 
-            logging.info("Synchronizing Facilities")
-            self._create_new_facilities(create)
-            logging.info("Updating Facilities")
-            self._update_existing_facilities(update)
+            responses = []
+            responses.extend(self._create_new_facilities(create))
+            responses.extend(self._update_existing_facilities(update))
 
-            logging.info("Deactivating Deleted Facilities")
+            # No output
             self._delete_removed_facilities(delete)
 
+            if self.config.sync.email_report_list and responses:
+                logging.info("Sending completion report to mailing list.")
+                notify_administrator(responses, self.config.sync.email_report_list)
+            elif not self.config.sync.email_report_list:
+                logging.info("Email List For Sync Report not set up.")
             # Log the results
             logging.info("Facility synchronization completed successfully")
 
@@ -95,7 +104,7 @@ class FacilitySynchronizationService:
 
     def validate_and_transform(self, facilities):
         # Extract services names from the nested structure
-        config = True
+        config = False
         if config is True:
             self.synchronize_supplement_data(facilities)
 
@@ -111,7 +120,13 @@ class FacilitySynchronizationService:
     def synchronize_supplement_data(self, facilities):
         df = self.facility_data_transformer.get_validated_dataframe(facilities)
         # Check for mandatory fields and valid relations
-        self.supplement_sync.synchronize_supplement_data(df)
+        if self.config.sync.synchronize_relevant:
+            logging.info("Synchronizing relevant resources.")
+            self.supplement_sync.synchronize_supplement_data(df)
+        else:
+            logging.info(
+                "Synchronization of relevant resources (Types, Geo Zones, Products) is disabled"
+            )
         return df
 
     def _split_df(self, df):
@@ -125,6 +140,7 @@ class FacilitySynchronizationService:
         return new_facilities, updated_facilities, deleted
 
     def _create_new_facilities(self, facilities):
+        logging.info("Synchronizing Facilities")
         format_payload_f = get_format_payload_f()
         df = facilities.withColumn(
             "payload",
@@ -139,13 +155,32 @@ class FacilitySynchronizationService:
                 lit(True),
             ),
         )
-        logging.info(f"New Facilities to be created: { df.count()}")
-        for row in df.collect():
-            self._create_request(row)
+
+        email_response_f = get_email_response_f()
+        df = df.withColumn(
+            "response",
+            email_response_f(
+                col(f"facilities.name"),
+                col(f"facilities.code"),
+                col("municipality.name"),
+                col("facility_type.name"),
+                lit("CREATE")
+            ),
+        )
+
+        responses = []
+        if df.count() > 0:
+            logging.info(f"New Facilities to be created: { df.count()}")
+            for row in df.collect():
+                responses.append(json.loads(row.response))
+                self._create_request(row)
+        else:
+            logging.info("No new facilities created")
+        return responses
 
     def _create_request(self, data):
         try:
-            self.lmis_client.send_post_request("facilities", data["payload"])
+            return self.lmis_client.send_post_request("facilities", data["payload"])
         except Exception as e:
             logging.error(
                 f"An error occurred during facility creation request ({data}): {e}"
@@ -153,7 +188,9 @@ class FacilitySynchronizationService:
 
     def _update_request(self, data):
         try:
-            self.lmis_client.send_put_request("facilities", data["id"], data["payload"])
+            return self.lmis_client.send_put_request(
+                "facilities", data["id"], data["payload"]
+            )
         except Exception as e:
             logging.error(
                 f"An error occurred during facility update request ({data}): {e}"
@@ -161,7 +198,7 @@ class FacilitySynchronizationService:
 
     def _delete_request(self, data):
         try:
-            self.lmis_client.send_delete_request("facilities", data["id"])
+            return self.lmis_client.send_delete_request("facilities", data["id"])
         except Exception as e:
             logging.error(
                 f"An error occurred during facility delete request ({data}): {e}"
@@ -177,6 +214,7 @@ class FacilitySynchronizationService:
         return udf(_inner_merge, StringType())
 
     def _update_existing_facilities(self, facilities: DataFrame, is_deleted=False):
+        logging.info("Updating Facilities")
         merge_json_udf = self.merge_json_f()
         facilities = facilities.withColumn(
             "mergedServices",
@@ -184,7 +222,6 @@ class FacilitySynchronizationService:
                 col("existing_facilities.supported_programs"), col("code_id_dict")
             ),
         )
-
         format_payload_f = get_format_payload_f()
 
         facilities = facilities.withColumn(
@@ -193,8 +230,12 @@ class FacilitySynchronizationService:
                 col(f"existing_facilities.id"),
                 col(f"facilities.name"),
                 col(f"facilities.code"),
-                col("municipality.id"),
-                col("facility_type.id"),
+                when(
+                    col("municipality.id").isNotNull(), col("municipality.id")
+                ).otherwise(lit(self.config.fallbacks.geographicZone)),
+                when(
+                    col("facility_type.id").isNotNull(), col("facility_type.id")
+                ).otherwise(lit(self.config.fallbacks.type)),
                 col("existing_facilities.supported_programs"),  # Use Existing Services
                 col("is_operational"),
                 lit(not is_deleted),
@@ -218,55 +259,58 @@ class FacilitySynchronizationService:
         schema = self.jdbc_reader.spark.read.json(
             facilities.rdd.map(lambda row: row.payload)
         ).schema  # Infer schema from the first JSON column
+
         facilities = facilities.withColumn(
             "json1_struct", from_json(col("payload"), schema)
         )
         facilities = facilities.withColumn(
             "json2_struct", from_json(col("oldPayload"), schema)
         )
-
-        def compare_for_any_change(df, col1, col2):
-            changes = []
-            for field in schema.fields:
-                field_name = field.name
-                # Skip supported programs as they remain the same.
-                if field_name == "supportedPrograms":
-                    continue
-                else:
-                    changes.append(
-                        col(f"{col1}.{field_name}") != col(f"{col2}.{field_name}")
-                    )
-
-            # Aggregate all change flags into a single boolean indicating any change
-            if changes:
-                # Aggregate all change flags into a single boolean indicating any change
-                change_column = (
-                    when(sum([change.cast("int") for change in changes]) > 0, True)
-                    .otherwise(False)
-                    .alias("any_change")
-                )
-            else:
-                change_column = lit(False).alias(
-                    "any_change"
-                )  # Handle the case when changes list is empty
-
-            # Select the original JSON payloads and the any_change flag
-            return df.select(
-                "payload", "existing_facilities.id", "oldPayload", change_column
-            )
-
-        logging.info(f"Comparing Changes For Facilities: {facilities.count()}")
         # Apply the comparison function
-        result_df = compare_for_any_change(facilities, "json1_struct", "json2_struct")
+
+        result_df = compare_json_content(facilities, "json1_struct", "json2_struct")
 
         result_df = result_df.filter(col("any_change") == True)[
-            ["payload", "existing_facilities.id"]
+            [
+                "facilities.name",
+                "facilities.code",
+                "municipality.name",
+                "facility_type.name",
+                "payload",
+                "existing_facilities.id",
+            ]
         ]
 
-        logging.info(f"Facilities That Changed since last update: {result_df.count()}")
-        for row in result_df.collect():
-            self._update_request(row)
+        email_response_f = get_email_response_f()
+        result_df = result_df.withColumn(
+            "response",
+            email_response_f(
+                col(f"facilities.name"),
+                col(f"facilities.code"),
+                col("municipality.name"),
+                col("facility_type.name"),
+                lit("UPDATE" if not is_deleted else "DELETE")
+            ),
+        )
+
+        responses = []
+        if result_df.count() > 0:
+            logging.info(
+                f"Facilities That Changed since last update: {result_df.count()}"
+            )
+            for row in result_df.collect():
+                self._update_request(row)
+                responses.append(json.loads(row.response))
+        else:
+            logging.info("No facilities were updated")
+        return responses
 
     def _delete_removed_facilities(self, facilities):
+        logging.info("Deactivating Deleted Facilities")
         # Delete doesn't remove the facility, it set's it to disaled and unactive
-        self._update_existing_facilities(facilities, True)
+        if facilities.count() > 0:
+            self._update_existing_facilities(facilities, True)
+        else:
+            logging.info("No facilities were deleted.")
+
+        return []

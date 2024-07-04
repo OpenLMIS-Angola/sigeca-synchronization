@@ -3,6 +3,7 @@ import json
 from pyspark.sql.functions import col, udf
 
 from app.application.synchronization.facilities.facility_schema import facility_schema
+from app.config import Config
 from app.domain.resources import (
     GeographicZoneResourceRepository,
     FacilityTypeResourceRepository,
@@ -76,14 +77,15 @@ class FacilityDataTransformer:
 
 
 def get_format_payload_f():
+    fallbacks = Config().fallbacks
     format_payload_f = udf(
         lambda id, name, code, geographic_zone, facility_type, supported_programs, operational, enabled: json.dumps(
             {
                 "id": id,
                 "code": code,
                 "name": name,
-                "geographicZone": {"id": geographic_zone},
-                "type": {"id": facility_type},
+                "geographicZone": {"id": geographic_zone or fallbacks.geographicZone},
+                "type": {"id": facility_type or fallbacks.type},
                 "active": operational,
                 "enabled": enabled,
                 "openLmisAccessible": enabled,
@@ -104,3 +106,15 @@ def get_format_payload_f():
     )
 
     return format_payload_f
+
+
+def get_email_response_f():
+    return udf(
+            lambda name, code, municipality_name, facility_type, operation: json.dumps({
+                "name": name,
+                "code": code,
+                "municipality": municipality_name or "UNDEFINED",
+                "type": facility_type or "UNDEFINED",
+                "operation": operation
+            })
+        )

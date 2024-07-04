@@ -3,17 +3,19 @@ import json
 import logging
 from requests.auth import HTTPBasicAuth
 
+from app.config import SigecaApiConfig
+
 
 class SigecaApiClient:
     LOGIN_URI = "token/"
     FACILITIES_URI = "facilities/"
     GEOGRAPHICAL_ZONES_URI = "geographicZones"
 
-    def __init__(self, api_config: dict):
+    def __init__(self, api_config: SigecaApiConfig):
         api_url: str = api_config["api_url"]
         headers: str = api_config["headers"]
         self.credentials = api_config["credentials"]
-        self.skip_verification: bool = api_config.get("skip_verification") or False
+        self.skip_verification: bool = api_config["skip_verification"] or False
 
         if api_url.endswith("/"):
             api_url = api_url[:-1]
