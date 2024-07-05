@@ -91,7 +91,19 @@ Create the `config.json` file with your specific settings. It can be created bas
         "local_bind_port": 5559 // Port binded to localhost 
     },
     "sync": {
-        "interval_minutes": 5 // Job interval in minutes 
+        "interval_minutes": 5, // Interval in minutes 
+        "email_report_list": ["example@email.com", "example2@email.com"] // Recipients of email report 
+    },
+    "fallbacks": {
+        "geographicZone" : "[UUID]", // Default Geo Zone for facilities without matching one
+        "type": "[UUID]" // Default Facility Type for facilities without matching one
+    },
+    "smtp": {
+        "server_url": "smtp-example.com",
+        "server_port": 465,
+        "username": "usenrame",
+        "password": "password",
+        "sender": "sender_email"
     }
 }
 ```

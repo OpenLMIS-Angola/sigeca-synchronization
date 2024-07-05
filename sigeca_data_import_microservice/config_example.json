@@ -44,7 +44,8 @@
         "sender": "sender"
     },
     "sync": {
-        "interval_minutes": 5
+        "interval_minutes": 5,
+        "email_report_list": ["example@email.com", "example2@email.com"]
     },
     "fallbacks": {
         "geographicZone" : "[UUID]",
