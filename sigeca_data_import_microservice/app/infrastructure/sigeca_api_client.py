@@ -3,17 +3,19 @@ import json
 import logging
 from requests.auth import HTTPBasicAuth
 
+from app.config import SigecaApiConfig
+
 
 class SigecaApiClient:
     LOGIN_URI = "token/"
     FACILITIES_URI = "facilities/"
     GEOGRAPHICAL_ZONES_URI = "geographicZones"
 
-    def __init__(self, api_config: dict):
+    def __init__(self, api_config: SigecaApiConfig):
         api_url: str = api_config["api_url"]
         headers: str = api_config["headers"]
-        self.credentials = api_config['credentials']
-        self.skip_verification: bool = api_config.get('skip_verification') or False
+        self.credentials = api_config["credentials"]
+        self.skip_verification: bool = api_config["skip_verification"] or False
 
         if api_url.endswith("/"):
             api_url = api_url[:-1]
@@ -30,29 +32,32 @@ class SigecaApiClient:
         self._get_token()
         url = f"{self.api_url}/{self.FACILITIES_URI}"
 
-        response = requests.get(url, headers=self.headers, verify=not self.skip_verification)
+        response = requests.get(
+            url, headers=self.headers, verify=not self.skip_verification
+        )
 
         if response.status_code == 200:
-            return response.json() 
+            return response.json()
         else:
             logging.error(
-                f"Failed to log into OpenLMIS API: {response.status_code} {response}"
+                f"Failed to Fetch Facilities from SIGECA API: {response.status_code} {response}"
             )
-            raise Exception("Failed to log into sigeca central API")
-
+            raise Exception("Failed to Fetch Facilities from SIGECA API")
 
     def _get_token(self):
         """Login to get access token"""
         url = f"{self.api_url}/{self.LOGIN_URI}"
         data = self.credentials
 
-        response = requests.post(url, headers=self.headers, data=data, verify=not self.skip_verification)
+        response = requests.post(
+            url, headers=self.headers, data=data, verify=not self.skip_verification
+        )
 
         if response.status_code == 200:
             self.token = response.json().get("access_token")
-            self.headers['Authorization'] = F"Bearer {self.token}"
+            self.headers["Authorization"] = f"Bearer {self.token}"
         else:
             logging.error(
-                f"Failed to log into OpenLMIS API: {response.status_code} {response}"
+                f"Failed to log into SIGECA API: {response.status_code} {response.text}"
             )
-            raise Exception("Failed to log into sigeca central API")
+            raise Exception("Failed to log into SIGECA API")

@@ -4,7 +4,9 @@ import logging
 import os
 
 from app.application.scheduler import FacilitySyncScheduler
-from app.application.synchronization.facilities import FacilitySynchronizationService
+from app.application.synchronization.facilities.synchronization import (
+    FacilitySynchronizationService,
+)
 from app.domain.resources import (
     FacilityOperatorResourceRepository,
     FacilityResourceRepository,
@@ -14,9 +16,11 @@ from app.domain.resources import (
 )
 from app.infrastructure.database import get_engine
 from app.infrastructure.jdbc_reader import JDBCReader
+from app.infrastructure.smtp_client import SMTPClient
 from app.infrastructure.open_lmis_api_client import OpenLmisApiClient
 from app.infrastructure.sigeca_api_client import SigecaApiClient
-from dotenv import dotenv_values, load_dotenv
+from dotenv import load_dotenv
+from app.config import Config
 
 
 def load_config(from_env=False):
@@ -60,11 +64,14 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
 
     config = load_config(args.env_config)
-    engine = get_engine(config["database"])
+    config = Config.from_dict(config)
 
-    lmis_client = OpenLmisApiClient(config["open_lmis_api"])
-    sigeca_client = SigecaApiClient(config["sigeca_api"])
-    jdbc_reader = JDBCReader(config["jdbc_reader"])
+    engine = get_engine(Config().database)
+
+    lmis_client = OpenLmisApiClient(config.open_lmis_api)
+    sigeca_client = SigecaApiClient(config.sigeca_api)
+    jdbc_reader = JDBCReader(config.jdbc_reader)
+    smtp_client = SMTPClient(config.smtp)
 
     sync_service = FacilitySynchronizationService(
         jdbc_reader,
@@ -76,8 +83,9 @@ if __name__ == "__main__":
         FacilityOperatorResourceRepository(jdbc_reader),
         ProgramResourceRepository(jdbc_reader),
     )
+
     try:
-        if config["jdbc_reader"].get("ssh_user"):
+        if config.jdbc_reader.ssh_user:
             jdbc_reader.setup_ssh_tunnel()
 
         if args.run_mode == "continuous":
@@ -87,9 +95,8 @@ if __name__ == "__main__":
         elif args.run_mode == "one-time":
             lmis_client.login()
             sync_service.synchronize_facilities()
-
     except Exception as e:
         logging.exception(e)
     finally:
-        if config["jdbc_reader"].get("ssh_user"):
+        if config.jdbc_reader.ssh_user:
             jdbc_reader.close_ssh_tunnel()

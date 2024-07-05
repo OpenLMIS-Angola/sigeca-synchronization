@@ -3,13 +3,15 @@ import json
 import logging
 from requests.auth import HTTPBasicAuth
 
+from app.config import OpenLmisApiConfig
+
 
 class OpenLmisApiClient:
     LOGIN_URI = "oauth/token?grant_type=password"
     FACILITIES_URI = "facilities"
     GEOGRAPHICAL_ZONES_URI = "geographicZones"
 
-    def __init__(self, api_config: dict):
+    def __init__(self, api_config: OpenLmisApiConfig):
         api_url: str = api_config["api_url"]
         username: str = api_config["username"]
         password: str = api_config["password"]

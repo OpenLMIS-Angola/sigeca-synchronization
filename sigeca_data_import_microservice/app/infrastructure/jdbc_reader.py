@@ -31,7 +31,7 @@ class JDBCReader:
             .config("spark.jars.packages", "org.postgresql:postgresql:42.2.23")
             .getOrCreate()
         )
-        self.spark.sparkContext.setLogLevel(config.get("log_level", "WARN"))
+        self.spark.sparkContext.setLogLevel(config["log_level"] or "WARN")
         self.tunnel = None
 
     def setup_ssh_tunnel(self):
