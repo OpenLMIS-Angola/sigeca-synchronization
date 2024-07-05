@@ -11,7 +11,7 @@ def _emails_formatter(facilities_response):
 
     Please review the resources below and make the necessary manual adjustments.
 
-    Failed Resources:
+    Resources:
     {}
     Please manually update the resources listed above and verify the changes.
     """
