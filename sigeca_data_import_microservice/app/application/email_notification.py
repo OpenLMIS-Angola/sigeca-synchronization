@@ -4,21 +4,24 @@ from app.config import Config
 from app.infrastructure.smtp_client import SMTPClient
 
 
+template = """Dear Administrator,
+
+The recent synchronization process has finished`    .
+
+Please review the resources below and make the necessary manual adjustments.
+
+Resources:
+{}
+Please manually update the resources listed above and verify the changes.
+"""
+
+resource_template = """    Resource: {facility_name} {facility_code} ({operation})
+    {geo_zone_mismatch}
+    {facility_type_mismatch}
+"""
+
+
 def _emails_formatter(facilities_response):
-    template = """Dear Administrator,
-
-    The recent synchronization process has finished`    .
-
-    Please review the resources below and make the necessary manual adjustments.
-
-    Resources:
-    {}
-    Please manually update the resources listed above and verify the changes.
-    """
-
-    resource_template = """    Resource: {facility_name} {facility_code} ({operation})
-            {geo_zone_mismatch}
-            {facility_type_mismatch}"""
 
     emails = []
     current_email = ""

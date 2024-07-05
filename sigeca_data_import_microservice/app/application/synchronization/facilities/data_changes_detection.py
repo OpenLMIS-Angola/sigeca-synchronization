@@ -1,13 +1,10 @@
 import json
 import logging
-from collections import defaultdict
 
 from pyspark.sql import DataFrame
 from pyspark.sql.functions import col, lit, udf, from_json, when
 
 from app.config import Config
-
-x = defaultdict()
 
 
 def get_fallbacks():

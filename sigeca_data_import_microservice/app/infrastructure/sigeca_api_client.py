@@ -57,7 +57,6 @@ class SigecaApiClient:
             self.token = response.json().get("access_token")
             self.headers["Authorization"] = f"Bearer {self.token}"
         else:
-            print(data)
             logging.error(
                 f"Failed to log into SIGECA API: {response.status_code} {response.text}"
             )
