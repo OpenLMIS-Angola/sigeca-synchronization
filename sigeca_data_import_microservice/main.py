@@ -2,7 +2,6 @@ import argparse
 import json
 import logging
 import os
-import cProfile
 
 from app.application.scheduler import FacilitySyncScheduler
 from app.application.synchronization.facilities.synchronization import (
@@ -94,13 +93,8 @@ if __name__ == "__main__":
             _run_scheduler(sync_service, sync_interval_minutes)
 
         elif args.run_mode == "one-time":
-            profiler = cProfile.Profile()
-            profiler.enable()
             lmis_client.login()
             sync_service.synchronize_facilities()
-            profiler.disable()
-            profiler.dump_stats("example.prof")
-
     except Exception as e:
         logging.exception(e)
     finally:
