@@ -15,9 +15,9 @@ Resources:
 Please manually update the resources listed above and verify the changes.
 """
 
-resource_template = """    Resource: {facility_name} {facility_code} ({operation})
-    {geo_zone_mismatch}
-    {facility_type_mismatch}
+resource_template = """> {facility_name} {facility_code} ({operation})
+        {geo_zone_mismatch}
+        {facility_type_mismatch}
 """
 
 
