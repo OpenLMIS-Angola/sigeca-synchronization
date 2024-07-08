@@ -6,7 +6,7 @@ from app.infrastructure.smtp_client import SMTPClient
 
 template = """Dear Administrator,
 
-The recent synchronization process has finished`    .
+The recent synchronization process has finished.
 
 Please review the resources below and make the necessary manual adjustments.
 
