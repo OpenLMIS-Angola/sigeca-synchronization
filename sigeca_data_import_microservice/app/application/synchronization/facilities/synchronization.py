@@ -21,7 +21,11 @@ from app.infrastructure.jdbc_reader import JDBCReader
 from app.infrastructure.open_lmis_api_client import OpenLmisApiClient
 from app.infrastructure.sigeca_api_client import SigecaApiClient
 from .data_changes_detection import compare_json_content
-from .data_transformator import FacilityDataTransformer, get_format_payload_f, get_email_response_f
+from .data_transformator import (
+    FacilityDataTransformer,
+    get_format_payload_f,
+    get_email_response_f,
+)
 from ...email_notification import notify_administrator
 
 
@@ -164,7 +168,7 @@ class FacilitySynchronizationService:
                 col(f"facilities.code"),
                 col("municipality.name"),
                 col("facility_type.name"),
-                lit("CREATE")
+                lit("CREATE"),
             ),
         )
 
@@ -232,10 +236,10 @@ class FacilitySynchronizationService:
                 col(f"facilities.code"),
                 when(
                     col("municipality.id").isNotNull(), col("municipality.id")
-                ).otherwise(lit(self.config.fallbacks.geographicZone)),
+                ).otherwise(col("existing_facilities.geographiczoneid")),
                 when(
                     col("facility_type.id").isNotNull(), col("facility_type.id")
-                ).otherwise(lit(self.config.fallbacks.type)),
+                ).otherwise(col("existing_facilities.typeid")),
                 col("existing_facilities.supported_programs"),  # Use Existing Services
                 col("is_operational"),
                 lit(not is_deleted),
@@ -289,7 +293,7 @@ class FacilitySynchronizationService:
                 col(f"facilities.code"),
                 col("municipality.name"),
                 col("facility_type.name"),
-                lit("UPDATE" if not is_deleted else "DELETE")
+                lit("UPDATE" if not is_deleted else "DELETE"),
             ),
         )
 
