@@ -1,5 +1,8 @@
 from dataclasses import dataclass, field
 from typing import Any, Dict, Optional, List
+from dotenv import load_dotenv
+import json
+import os
 
 
 @dataclass
@@ -69,6 +72,7 @@ class SyncConfig:
     interval_minutes: Optional[int] = None
     synchronize_relevant: Optional[bool] = False
     email_report_list: Optional[List[str]] = field(default_factory=list)
+    email_report_role_right_uuid: Optional[str] = None
 
     def __getitem__(self, key: str) -> Any:
         return getattr(self, key)

@@ -70,3 +70,15 @@ class ProgramResourceRepository(BaseResourceRepository):
     def get_all(self):
         query = "(SELECT * FROM referencedata.programs) AS programs"
         return self.jdbc_reader.read_data(query)
+
+
+class ContactDetailsOfUsesrRepository(BaseResourceRepository):
+    def get_all(self):
+        query = """(
+            SELECT rr.rightid, ucd.*
+                FROM referencedata.role_rights rr
+                INNER JOIN referencedata.role_assignments ra ON ra.roleid = rr.roleid
+                INNER JOIN notification.user_contact_details ucd ON ucd.referencedatauserid = ra.userid
+        ) AS contact_details
+        """
+        return self.jdbc_reader.read_data(query)

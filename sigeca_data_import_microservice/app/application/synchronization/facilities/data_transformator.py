@@ -110,11 +110,13 @@ def get_format_payload_f():
 
 def get_email_response_f():
     return udf(
-            lambda name, code, municipality_name, facility_type, operation: json.dumps({
+        lambda name, code, municipality_name, facility_type, operation: json.dumps(
+            {
                 "name": name,
                 "code": code,
                 "municipality": municipality_name or "UNDEFINED",
                 "type": facility_type or "UNDEFINED",
-                "operation": operation
-            })
+                "operation": operation,
+            }
         )
+    )
