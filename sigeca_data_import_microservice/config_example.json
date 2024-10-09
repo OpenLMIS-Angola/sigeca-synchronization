@@ -45,10 +45,11 @@
     },
     "sync": {
         "interval_minutes": 5,
-        "email_report_list": ["example@email.com", "example2@email.com"]
+        "email_report_list": ["example@email.com", "example2@email.com"],
+        "email_report_role_right_uuid": "00000000-0000-0000-0000-000000000000"
     },
     "fallbacks": {
-        "geographicZone" : "[UUID]",
-        "type": "[UUID]"
+        "geographicZone" : "00000000-0000-0000-0000-000000000000",
+        "type": "00000000-0000-0000-0000-000000000000"
     }
 }

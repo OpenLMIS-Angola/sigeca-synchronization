@@ -21,11 +21,11 @@ class SMTPClient:
             with smtplib.SMTP_SSL(self._url, self._port, context=context) as smtp:
                 smtp.login(self._username, self._password)
                 msg = MIMEMultipart()
-                msg['From'] = self._sender
-                msg['To'] = address
-                msg['Subject'] = subject
+                msg["From"] = self._sender
+                msg["To"] = address
+                msg["Subject"] = subject
                 # Attach the email body to the MIME message
-                msg.attach(MIMEText(message, 'plain'))
+                msg.attach(MIMEText(message, "plain"))
                 # Send the email
                 smtp.send_message(msg)
         except Exception as e:

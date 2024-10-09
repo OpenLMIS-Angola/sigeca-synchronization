@@ -1,4 +1,4 @@
-# Sigeca Data Export Microservice
+# Sigeca Data Import Microservice
 
 This microservice synchronizes data between a local database and an external API using Apache Spark. It supports both continuous synchronization and one-time integration.
 
@@ -25,6 +25,7 @@ This microservice synchronizes data between a local database and an external API
 - Java Runtime Environment (JRE) installed
 - Apache Hadoop and Apache Spark
 - An external database (e.g., PostgreSQL) accessible from your Docker network
+- Installed libpq-dev 
 
 ## Setup
 
@@ -43,7 +44,7 @@ This microservice synchronizes data between a local database and an external API
 3. Install requirements 
 
     ```bash
-    python install -r requirements.txt
+    pip install -r requirements.txt
     ```
 
 ## Configuration
@@ -92,7 +93,9 @@ Create the `config.json` file with your specific settings. It can be created bas
     },
     "sync": {
         "interval_minutes": 5, // Interval in minutes 
-        "email_report_list": ["example@email.com", "example2@email.com"] // Recipients of email report 
+        "email_report_list": ["example@email.com", "example2@email.com"], // Recipients of email report 
+        "email_report_role_right_uuid": "[UUID]" // UUID of the right associated with users who receive the email report
+
     },
     "fallbacks": {
         "geographicZone" : "[UUID]", // Default Geo Zone for facilities without matching one

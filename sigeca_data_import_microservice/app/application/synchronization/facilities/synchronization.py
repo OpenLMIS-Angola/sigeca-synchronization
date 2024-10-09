@@ -96,7 +96,11 @@ class FacilitySynchronizationService:
 
             if self.config.sync.email_report_list and responses:
                 logging.info("Sending completion report to mailing list.")
-                notify_administrator(responses, self.config.sync.email_report_list)
+                notify_administrator(
+                    responses,
+                    bool(self.config.sync.email_report_list),
+                    bool(self.config.sync.email_report_role_right_uuid),
+                )
             elif not self.config.sync.email_report_list:
                 logging.info("Email List For Sync Report not set up.")
             # Log the results
