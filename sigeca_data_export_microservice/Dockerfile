@@ -46,9 +46,9 @@ ENV APACHE_SPARK_VERSION="${spark_version}" \
 WORKDIR /tmp
 # Using the preferred mirror to download Spark
 # hadolint ignore=SC2046
-RUN wget -q https://dlcdn.apache.org/spark/spark-3.4.3/spark-3.4.3-bin-hadoop3.tgz
-RUN tar xzf "spark-3.4.3-bin-hadoop3.tgz" -C /usr/local --owner root --group root --no-same-owner && \
-    rm "spark-3.4.3-bin-hadoop3.tgz"
+RUN wget -q https://dlcdn.apache.org/spark/spark-3.4.4/spark-3.4.4-bin-hadoop3.tgz
+RUN tar xzf "spark-3.4.4-bin-hadoop3.tgz" -C /usr/local --owner root --group root --no-same-owner && \
+    rm "spark-3.4.4-bin-hadoop3.tgz"
 
 WORKDIR /usr/local
 
@@ -57,7 +57,7 @@ ENV SPARK_HOME=/usr/local/spark
 ENV SPARK_OPTS="--driver-java-options=-Xms1024M --driver-java-options=-Xmx4096M --driver-java-options=-Dlog4j.logLevel=info" \
     PATH=$PATH:$SPARK_HOME/bin
 
-RUN ln -s "spark-3.4.3-bin-hadoop3" spark
+RUN ln -s "spark-3.4.4-bin-hadoop3" spark
 
 WORKDIR /app
 
