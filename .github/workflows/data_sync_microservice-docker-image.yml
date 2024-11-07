@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-      - 'release/**'
+      - 'rel-*'
 
 jobs:
   build-export:
@@ -24,6 +24,16 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set Version Tag
+        run: |
+          branch_name="${GITHUB_REF##*/}"
+          if [[ "$branch_name" == "main" ]]; then
+            VERSION_TAG="main"
+          else
+            VERSION_TAG=${branch_name/rel-/}
+          fi
+          echo "VERSION_TAG=${VERSION_TAG}" >> $GITHUB_ENV
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v2
         with:
@@ -31,7 +41,7 @@ jobs:
           push: true
           tags: |
             ghcr.io/openlmis-angola/open-lmis-sigeca-data-export-microservice:latest
-            ghcr.io/openlmis-angola/open-lmis-sigeca-data-export-microservice:${{ github.ref_name }}
+            ghcr.io/openlmis-angola/open-lmis-sigeca-data-export-microservice:${{ env.VERSION_TAG }}
 
       - name: Log out of GitHub Container Registry
         run: docker logout ghcr.io
@@ -53,6 +63,16 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Set Version Tag
+        run: |
+          branch_name="${GITHUB_REF##*/}"
+          if [[ "$branch_name" == "main" ]]; then
+            VERSION_TAG="main"
+          else
+            VERSION_TAG=${branch_name/rel-/}
+          fi
+          echo "VERSION_TAG=${VERSION_TAG}" >> $GITHUB_ENV
+
       - name: Build and push Docker image
         uses: docker/build-push-action@v2
         with:
@@ -60,7 +80,7 @@ jobs:
           push: true
           tags: |
             ghcr.io/openlmis-angola/open-lmis-sigeca-data-import-microservice:latest
-            ghcr.io/openlmis-angola/open-lmis-sigeca-data-export-microservice:${{ github.ref_name }}
+            ghcr.io/openlmis-angola/open-lmis-sigeca-data-import-microservice:${{ env.VERSION_TAG }}
 
       - name: Log out of GitHub Container Registry
         run: docker logout ghcr.io
